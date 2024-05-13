@@ -20,6 +20,6 @@ for epoch in range(10):
         loss = optimizer.step(closure)
 ```
 
-So what is happening there? We generate a random petrubation to model parameters and reevaluate the loss, if it increases, set petrubation to `grad`, otherwise set minus petrubation to `grad`. And then your favourite optimizer uses its update rules!
+So what is happening there? We generate a random petrubation to model parameters and reevaluate the loss, if it increases, set `grad` to petrubation, otherwise `grad` to minus petrubation. And then your favourite optimizer uses its update rules!
 
 ![image](https://github.com/qq-me/torchzero/assets/76593873/2b1c911c-4b36-44fa-9225-1eca038b585e)
