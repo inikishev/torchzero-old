@@ -6,11 +6,10 @@ from torch.optim import Optimizer
 from .utils import foreach_param, foreach_group_param
 
 class RandomGrad(Optimizer):
-    def __init__(self, params, lr=1e-3, opt=None, mul:float = 1, step_opposite=True, sampler: Callable = torch.randn_like):
+    def __init__(self, params, lr=1e-3, opt=None, step_opposite=True, sampler: Callable = torch.randn_like):
         defaults = dict(
             lr=lr,
             sampler=sampler,
-            mul=mul,
             step_opposite=step_opposite,
         )
         self.opt = opt
@@ -47,8 +46,8 @@ class RandomGrad(Optimizer):
 
                 # set the gradients
                 if group["step_opposite"]:
-                    if p.grad is None: p.grad = state["direction"] * group["mul"]
-                    else: p.grad.add_(state["direction"] * group["mul"])
+                    if p.grad is None: p.grad = state["direction"] / group["lr"]
+                    else: p.grad.add_(state["direction"] / group["lr"])
 
         # if loss decreased
         else:
@@ -58,8 +57,8 @@ class RandomGrad(Optimizer):
                 state = self.state[p]
 
                 # set the gradients
-                if p.grad is None: p.grad = -state["direction"] * group["mul"]
-                else: p.grad.add_(-state["direction"] * group["mul"])
+                if p.grad is None: p.grad = -state["direction"] / group["lr"]
+                else: p.grad.add_(-state["direction"] / group["lr"])
 
         # restore the params
         for group, p in foreach_group_param(self.param_groups):
@@ -76,7 +75,6 @@ class RandomBestGrad(Optimizer):
         params,
         lr=1e-3,
         opt=None,
-        mul=1,
         bestof=10,
         avgbest=False,
         negate_worst=True,
@@ -85,7 +83,6 @@ class RandomBestGrad(Optimizer):
         defaults = dict(
             lr=lr,
             sampler=sampler,
-            mul=mul,
             avgbest=avgbest,
             negate_worst=negate_worst,
         )
@@ -170,8 +167,8 @@ class RandomBestGrad(Optimizer):
             # negate worst if no good steps and negate_worst is True
             if group["negate_worst"] and state["nbest"] == 0: state["best"] = - state["worst"]
             # set the gradients
-            if p.grad is None: p.grad = -state["best"] * group["mul"]
-            else: p.grad.add_(-state["best"] * group["mul"])
+            if p.grad is None: p.grad = -state["best"] / group["lr"]
+            else: p.grad.add_(-state["best"] / group["lr"])
 
         self.n_steps += 1
         if self.opt is not None: self.opt.step()
