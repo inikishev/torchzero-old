@@ -92,12 +92,8 @@ class RandomWalk(Optimizer):
                 state['no improvement streak'] = 0
                 if group['momentum'] is not None: state['momentum'] = torch.zeros_like(p)
 
-            self.n_steps = 1
-
             # evaluate the initial loss unless stochastic mode is on (in which case optimization starts on 1st step)
-            if not self.stochastic:
-                self.lowest_loss = closure()
-                return self.lowest_loss
+            if not self.stochastic: self.lowest_loss = closure()
 
         # with stochastic mode, on each step we calculate the loss, make a step, and calculate the loss again
         if self.stochastic: self.lowest_loss = closure()
@@ -329,12 +325,8 @@ class RandomWalkSO(Optimizer):
                 state["initial lr1"] = group['lr']
                 state["initial lr2"] = group['lr2']
 
-            self.n_steps = 1
-
             # evaluate the initial loss unless stochastic mode is on (in which case optimization starts on 1st step)
-            if not self.stochastic:
-                self.lowest_loss = closure()
-                return self.lowest_loss
+            if not self.stochastic: self.lowest_loss = closure()
 
         # with stochastic mode, on each step we calculate the loss, make a step, and calculate the loss again
         if self.stochastic: self.lowest_loss = closure()

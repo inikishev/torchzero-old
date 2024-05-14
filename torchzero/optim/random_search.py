@@ -32,9 +32,8 @@ class RandomSearch(Optimizer):
             for p in foreach_param(self.param_groups): self.state[p]['best'] = p.clone()
             # evaluate the initial loss
             self.lowest_loss = closure()
-            self.n_steps += 1
-            return self.lowest_loss
 
+        # make a step
         for group, p in foreach_group_param(self.param_groups):
 
             # set parameter group to new random values
