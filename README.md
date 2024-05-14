@@ -29,18 +29,18 @@ from collie.optim.lion import Lion
 # Since SGD simply subtracts the gradient, by chaining optimizers with SGD, we can essentially add pure Nesterov momentum
 # we can apply Nesterov momentum before Lion optimizer update rules kick in:
 optimizer = GradChain(
-    list(descent.parameters()),
+    model.parameters(),
     [
-        torch.optim.SGD(descent.parameters(), lr=1 momentum=0.9, nesterov=True),
-        Lion(descent.parameters(), lr=1e-2),
+        torch.optim.SGD(model.parameters(), lr=1 momentum=0.9, nesterov=True),
+        Lion(model.parameters(), lr=1e-2),
     ],
 )
 # or after, by swapping them
 optimizer = GradChain(
-    list(descent.parameters()),
+    model.parameters(),
     [
-        Lion(descent.parameters(), lr=1e-2),
-        torch.optim.SGD(descent.parameters(), lr=1, momentum=0.9, nesterov=True),
+        Lion(model.parameters(), lr=1e-2),
+        torch.optim.SGD(model.parameters(), lr=1, momentum=0.9, nesterov=True),
     ],
 )
 ```
