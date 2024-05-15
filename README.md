@@ -23,8 +23,12 @@ So what is happening there? We generate a random petrubation to model parameters
 An evolving swarm of 10 of those reaches 82% test accuracy in 10 epochs, evaluating the model 10 times per step. I did 0 tuning so it can probably get better.
 ```py
 from from torchzero.optim.random_walk import RandomGrad, SwarmOfOptimizers
-optimizers = [RandomGrad(MODEL.parameters(), lr=LRGRAD, opt=optim.AdamW(MODEL.parameters(), LR)) for _ in range(10)]
-swarm = SwarmOfOptimizers(MODEL.parameters(), optimizers, old_steps=5, die_after=20, crossover_p=0.9) # a swarm is also an torch.optim.Optimizer and uses the same API
+optimizers = [
+    RandomGrad(MODEL.parameters(), lr=LRGRAD, opt=optim.AdamW(MODEL.parameters(), LR))
+    for _ in range(10)
+]
+# a swarm is also an torch.optim.Optimizer and uses the same API
+swarm = SwarmOfOptimizers(MODEL.parameters(), optimizers, old_steps=5, die_after=20, crossover_p=0.9) 
 ```
 Each optimizer in a swarm optimizes its own copy of model parameters, and, whenever some optimizer performs badly, it dies and respawns with new parameters that are a crossover between two best optimizers. This can also work on gradient-descent optimizers, but it (currently) won't work well with most optimizers other than plain SGD because momentum doesn't know about all those new swarm update rules.
 
