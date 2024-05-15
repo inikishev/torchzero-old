@@ -1,3 +1,4 @@
+from typing import Optional
 from collections.abc import Callable
 import torch
 from torch.optim import Optimizer
@@ -6,17 +7,18 @@ from .utils import foreach_param, foreach_group_param
 
 __all__ = ["RandomSearch", ]
 class RandomSearch(Optimizer):
-    """Random search. Generates random parameters and saves them if loss decreases."""
     def __init__(self, params, sampler:Callable = torch.randn_like):
         """Random search. Generates random parameters and saves them if loss decreases.
 
-        Args:
-            params:
-            Usually `model.parameters()`.
+        Random search is often used for finding hyperparameters,
+        or to quickly find the minimum of some cheap low-dimensional problem without having to worry about more sophisticated optimization methods.
 
-            sampler (Callable, optional):
-            Sampler that gets passed a parameter and generates random weights of its shape, so functions such as `torch.rand_like`.
-            Defaults to torch.randn_like.
+        This evaluates closure once per step.
+
+        Args:
+            params: Parameters to optimize. Usually `model.parameters()`.
+
+            sampler (Callable, optional): Sampler that gets passed a parameter and generates random weights of its shape, so functions such as `torch.randn_like`. Defaults to torch.randn_like. Supports parameter groups.
         """
         defaults = dict(sampler=sampler)
         super().__init__(params, defaults)
@@ -26,6 +28,11 @@ class RandomSearch(Optimizer):
 
     @torch.no_grad
     def step(self, closure:Callable): # type:ignore #pylint:disable=W0222
+        """Performs a single optimization step (parameter update).
+
+        Args:
+            closure (Callable): A closure that reevaluates the model and returns the loss. The closure is evaluated twice on the first step, and then once per step.
+        """
         # on first iteration we calculate the initial loss to compare new parameters to on next iterations
         if self.n_steps == 0:
             # save all parameters
@@ -59,18 +66,23 @@ class RandomSearch(Optimizer):
         return self.lowest_loss
 
 class RandomShrinkingSearch(Optimizer):
-    """Random shrinking search. Generates random parameters in some area around the best parameter, and saves them if loss decreases.
-    Area size depends on `lr` parameter. A simple linear decay to 0 scheduler will be used if `nsteps` is provided; otherwise use any other scheduler."""
-    def __init__(self, params, lr, nsteps = None, sampler:Callable = torch.randn_like):
-        """Random search. Generates random parameters and saves them if loss decreases.
+    def __init__(self, params, lr: float = 1, nsteps:Optional[int] = None, sampler:Callable = torch.randn_like):
+        """Random shrinking search. Generates random parameters in a shrinking area around the best found parameters.
+
+        Search area size depends on `lr` parameter.
+        Linear decay from 1 to 0 will be used if `nsteps` is provided; otherwise use any other lr scheduler.
+        #### If you neither specify `nsteps` nor use an lr scheduler, this will be equivalent to normal random search.
+
+        This evaluates closure once per step.
 
         Args:
-            params:
-            Usually `model.parameters()`.
+            params: Parameters to optimize. Usually `model.parameters()`.
 
-            sampler (Callable, optional):
-            Sampler that gets passed a parameter and generates random weights of its shape, so functions such as `torch.rand_like`.
-            Defaults to torch.randn_like.
+            lr (float): random values from `sampler` will be multiplied by this, i.e. lower values mean smaller search area. If `nsteps` is specified, this linearly will decay to 0. Defaults to 1. Supports parameter groups and lr schedulers.
+
+            nsteps (int): Number of steps for linear lr decay. One step is performed each time `step` is called. Without `nsteps`/lr scheduler this will be equivalent to normal random search.
+
+            sampler (Callable, optional): Sampler that gets passed a parameter and generates random weights of its shape, so functions such as `torch.rand_like`. Defaults to torch.randn_like. Supports parameter groups.
         """
         defaults = dict(lr=lr, nsteps=nsteps, sampler=sampler)
         super().__init__(params, defaults)
@@ -80,6 +92,11 @@ class RandomShrinkingSearch(Optimizer):
 
     @torch.no_grad
     def step(self, closure:Callable): # type:ignore #pylint:disable=W0222
+        """Performs a single optimization step (parameter update).
+
+        Args:
+            closure (Callable): A closure that reevaluates the model and returns the loss. The closure is evaluated twice on the first step, and then once per step.
+        """
         # on first iteration we calculate the initial loss to compare new parameters to on next iterations
         if self.cur_step == 0:
             # save all parameters

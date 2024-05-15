@@ -7,8 +7,6 @@ from .utils import foreach_param, foreach_group_param
 
 __all__ = ["RandomWalk", ]
 class RandomWalk(Optimizer):
-    """Random walk. Makes a step into a random direction, and if loss doesn't decrease, moves into the opposite direction."""
-
     def __init__(
         self,
         params,
@@ -17,47 +15,53 @@ class RandomWalk(Optimizer):
         momentum: Optional[float] = None,
         momentum_decay: tuple[float, float] | float = (0.99, 0.95),
         adaptive_lr: Optional[tuple[float, float]] = None, # (0.999, 1.1),
-        weight_decay: Optional[float] = None,
         move_opposite = True,
         momentum_opposite = True,
         no_opposite_momentum = True,
-        clear_bad_momentum = 10,
+        clear_bad_momentum:int = 10,
         fuse_momentum = False,
+        weight_decay: Optional[float] = None,
         stochastic=True,
     ):
-        """Random walk. Makes a step into a random direction, and if loss doesn't decrease, moves into the opposite direction.
+        """
+        Random walk. Makes a step into a random direction, and if loss doesn't decrease, moves into the opposite direction.
+        It is sometimes called random optimization and random search, which is easy to confuse with the other random search that just samples
+        from a random distribution, thus I think random walk search is a fitting name, especially since there is also second-order and higher-order random walk.
+
+        Random walk is surprisingly effective for fairly high-dimensional problems, for example this can be used for training neural networks,
+        however I would recommend using `RandomGrad`, which would be equivalent to this,
+        but with probably better momentum and update rules from any gradient-based optimizer of your choice.
+
+        With default parameters this is vanilla random walk. Tuning the parameters, especially momentum, may give better convergence. There are quite a lot of hyperparameters and I will probably change them in the future.
+
+        This evaluates closure twice per step if `stochastic` is True (by default), once per step if `stochastic` is False.
 
         Args:
-            params:
-            Usually `model.parameters()`.
+            params: Parameters to optimize. Usually `model.parameters()`.
 
-            lr (float, optional):
-            Random values from sampler will be multipled by this. Defaults to 1e-3.
+            lr (float, optional): Step size, random values from sampler will be multipled by this. Defaults to 1e-3.
 
-            sampler (Callable, optional):
-            Sampler that gets passed a parameter and generates a random direction of its shape, so functions such as `torch.rand_like`.
-            Defaults to torch.randn_like.
+            sampler (Callable, optional): Sampler that gets passed a parameter and generates a random direction of its shape, so functions such as `torch.rand_like`. Defaults to torch.randn_like.
 
-            momentum (Optional[float], optional):
-            Successful random directions will be multiplied by this and added to decaying momentum, which is added to parameters on each step.
-            Defaults to None. 0.075 might be a good value.
+            momentum (Optional[float], optional): Successful random directions will be multiplied by this and added to decaying momentum, which is added to parameters on each step. Defaults to None.
 
-            momentum_decay (tuple[float, float] | float, optional):
-            Only used if momentum is not None.
-            If loss didn't decrease (which will likely happen most of the time), multiplies momentum by first value.
-            If it decreased, multiples momentum by second value.
-            Defaults to (0.99, 0.95).
+            momentum_decay (tuple[float, float] | float, optional): Only used if momentum is not `None`. If loss didn't decrease (which will likely happen most of the time), multiplies momentum by first value. If it decreased, multiples momentum by second value. Defaults to (0.99, 0.95).
 
-            weight_decay (Optional[float], optional):
-            Model parameters are multiplied by `1 - weight_decay` each step. Defaults to None.
+            adaptive_lr (tuple[float, float], optional): If loss increased (which will likely happen most of the time), multiply lr by first value. If decreased, multiply lr by second value. Defaults to None.
 
-            move_opposite (bool, optional):
-            If `True`, after a step, if loss increased, move into the opposite direction, if `False`, just undo the step. Defaults to True.
+            move_opposite (bool, optional): If `True`, after a step, if loss increased, move into the opposite direction, if `False`, just undo the step. Defaults to True.
 
-            adaptive_lr (tuple[float, float], optional):
-            If loss increased (which will likely happen most of the time), multiply lr by first value.
-            If decreased, multiply lr by second value.
-            Defaults to (0.999, 1.1).
+            momentum_opposite (bool, optional): If `True`, after a step, if loss increased, add opposite direction to momentum. Defaults to True.
+
+            no_opposite_momentum (bool, optional): If `True`, momentum won't be applied when moving the opposite way when loss increased.
+
+            clear_bad_momentum (int): clears momentum after this many successive steps with no loss decrease, defaults to 10.
+
+            fuse_momentum (bool): if `True`, momentum will be based on the update, which includes already existing momentum, if `False`, momentum will only be based on the latest direction.
+
+            weight_decay (Optional[float], optional): Model parameters are multiplied by `1 - weight_decay` each step similar to Lion optimizer, but I haven't tested this and there is a high chance this doesn't work well. Defaults to None.
+
+            stochastic (bool): Setting this to `False` if your function is deterministic allows to only do one evaluation per step. If `True`, does two evaluations - one to get the initial loss (presumably for current batch), second one evaluates loss after stepping.
         """
         if isinstance(momentum_decay, (int,float)): momentum_decay = (momentum_decay, momentum_decay)
         defaults = dict(
@@ -199,7 +203,6 @@ class RandomWalk(Optimizer):
 
 
 class RandomWalkSO(Optimizer):
-    """Second order random walk. Instead of generating a random direction to step in, this generates a random change to the direction"""
     def __init__(
         self,
         params,
@@ -218,12 +221,15 @@ class RandomWalkSO(Optimizer):
         change_opposite = True,
         momentum_opposite = True,
         no_opposite_momentum = True,
-        clear_bad_momentum = 10,
+        clear_bad_momentum: int = 10,
         fuse_momentum = False,
         scale_lr2_with_lr = True,
         stochastic = True,
     ):
-        """Second order random walk.
+        """
+        Second order random walk. Instead of generating a random direction to step in, this generates a random change to the direction. 
+        However, with default arguments this isn't true second order random walk, 
+        as it will occasionally generate a whole new direction if previous one was unsuccessfull for a long time.
 
         Algorithm:
 
@@ -238,50 +244,48 @@ class RandomWalkSO(Optimizer):
             - if loss increased, undo the step, restore the previous direction and go to step 3.
             - if loss increases `retries` times in a row, undo the step and go to step 1.
 
-        Args:
-            params:
-            Usually `model.parameters()`.
+        Random walk is surprisingly effective for fairly high-dimensional problems. Second order random walk also seems to converge faster, but it requires more tuning. Tuning the parameters, especially momentum, may give better convergence. There are quite a lot of hyperparameters and I will probably change them in the future.
 
-            lr (float, optional): Learning rate for 1st order direction. Random values from sampler for generating random direction will be multipled by this. Defaults to 1e-3.
+        Args:
+            params: Parameters to optimize. Usually `model.parameters()`.
+
+            lr (float, optional): Step size, or learning rate for 1st order direction. Random values from sampler for generating random direction will be multipled by this. Defaults to 1e-3.
 
             lr2 (float, optional): Learning rate for 2nd order direction. Random values from sampler for generating random change to direction will be multipled by this. Defaults to 1e-4.
 
-            retries (int, optional): How many times to try generating a random change to the direction before giving up and generating a new random direction.
-            Defaults to 10.
+            retries (int, optional): How many times to try generating a random change to the direction before giving up and generating a new random direction. Defaults to 10.
 
-            sampler1 (Callable, optional):
-            Sampler for 1st order direction. Gets passed a parameter and generates a random direction of its shape, so functions such as `torch.rand_like`.
-            Defaults to torch.randn_like.
+            sampler1 (Callable, optional): Sampler for 1st order direction. Gets passed a parameter and generates a random direction of its shape, so functions such as `torch.rand_like`. Defaults to torch.randn_like.
 
-            sampler2 (Callable, optional):
-            Sampler for 2nd order direction. Gets passed a parameter and generates a random change to direction of its shape, so functions such as `torch.rand_like`.
-            Defaults to torch.randn_like.
+            sampler2 (Callable, optional): Sampler for 2nd order direction. Gets passed a parameter and generates a random change to direction of its shape, so functions such as `torch.rand_like`. Defaults to torch.randn_like.
 
-            momentum (Optional[float], optional):
-            Successful random directions will be multiplied by this and added to decaying momentum, which is added to parameters on each step.
-            Defaults to None. 0.075 might be a good value.
+            momentum (Optional[float], optional): Successful random directions will be multiplied by this and added to decaying momentum, which is added to parameters on each step. Defaults to None.
 
-            momentum_decay (tuple[float, float] | float, optional):
-            Only used if momentum is not None.
-            If loss didn't decrease (which will likely happen most of the time), multiplies momentum by first value.
-            If it decreased, multiples momentum by second value.
-            Defaults to (0.99, 0.95).
+            momentum_decay (tuple[float, float] | float, optional): Only used if momentum is not None. If loss didn't decrease (which will likely happen most of the time), multiplies momentum by first value. If it decreased, multiples momentum by second value. Defaults to (0.99, 0.95).
 
-            weight_decay (Optional[float], optional):
-            Model parameters are multiplied by `1 - weight_decay` each step. Defaults to None.
+            weight_decay (Optional[float], optional): Model parameters are multiplied by `1 - weight_decay` each step similar to Lion optimizer, but I haven't tested this and there is a high chance this doesn't work well. Defaults to None.
 
-            move_opposite (bool, optional):
-            If `True`, after a step, if loss increased, move into the opposite direction, if `False`, just undo the step. Defaults to True.
+            move_opposite (bool, optional): If `True`, after a step, if loss increased, move into the opposite direction, if `False`, just undo the step. Defaults to True.
 
-            adaptive_lr (tuple[float, float], optional):
-            Adaptive lr for 1st order direction. If loss increased (which will likely happen most of the time), multiply lr by first value.
-            If decreased, multiply lr by second value.
-            Defaults to (0.999, 1.1).
+            momentum_opposite (bool, optional): If `True`, after a step, if loss increased, add opposite direction to momentum. Defaults to True.
 
-            adaptive_lr2 (tuple[float, float], optional):
-            Adaptive lr for 2nd order direction. If loss increased (which will likely happen most of the time), multiply lr by first value.
-            If decreased, multiply lr by second value.
-            Defaults to (0.999, 1.1).
+            repeat_good (bool): If `True`, won't generate a new 2nd order direction if previous one reduced the loss.
+
+            change_opposite (bool): If `True`, after a step, if loss increased, move 2nd order direction to its opposite.
+
+            no_opposite_momentum (bool, optional): If `True`, momentum won't be applied when moving the opposite way when loss increased.
+
+            clear_bad_momentum (int): clears momentum after this many successive steps with no loss decrease, defaults to 10.
+
+            fuse_momentum (bool): if `True`, momentum will be based on the update, which includes already existing momentum, if `False`, momentum will only be based on the latest direction.
+
+            adaptive_lr (tuple[float, float], optional): Adaptive learning rate for 1st order direction. If loss increased (which will likely happen most of the time), multiply lr by first value. If decreased, multiply lr by second value. Defaults to None.
+
+            adaptive_lr2 (tuple[float, float], optional): Adaptive learning rate for 2nd order direction. If loss increased (which will likely happen most of the time), multiply lr by first value. If decreased, multiply lr by second value. Defaults to None.
+
+            scale_lr2_with_lr (bool): Whether to scale 2nd order learning rate with 1st order learning rate, when you use LR schedulers. Defaults to True.
+
+            stochastic (bool): Setting this to `False` if your function is deterministic allows to only do one evaluation per step. If `True`, does two evaluations - one to get the initial loss (presumably for current batch), second one evaluates loss after stepping.
         """
         if isinstance(momentum_decay, (int,float)): momentum_decay = (momentum_decay, momentum_decay)
         defaults = dict(
