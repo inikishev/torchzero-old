@@ -20,7 +20,7 @@ for epoch in range(10):
 
 So what is happening there? We generate a random petrubation to model parameters and reevaluate the loss, if it increases, set `grad` to petrubation, otherwise `grad` to minus petrubation. And then your favourite optimizer uses its update rules!
 
-We can go further, an evolving swarm of 10 of those reaches 82% test accuracy in 10 epochs, evaluating the model 10 times per step. I did 0 tuning so it can probably get better.
+We can go further, an evolving swarm of 10 of those reaches 82% test accuracy in 10 epochs, evaluating the model 10 times per step. I did 0 tuning so it can probably get better, and the accuracy was steadily increasing at the end so more epochs would help.
 ```py
 from from torchzero.optim.random_walk import RandomGrad, SwarmOfOptimizers
 optimizers = [
