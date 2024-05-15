@@ -30,8 +30,8 @@ class SwarmOfOptimizers(Optimizer):
         noise_sampler = torch.randn_like,
     ):
         """Swarm of optimizers. With default arguments each optimizer gets its own copy of model parameters and optimizes it,
-        with no communication between optimizers. It is thus recommended to enable enchancements such as killing bad optimizers
-        and setting their parameters using crossover, or gravitational pull towards best optimizer.
+        with no communication between optimizers. It is thus recommended to enable enchancements such as bad optimizers dying and respawning
+        with a crossover of best optimizer parameters, or gravitational pull towards best optimizer.
 
         If you are using gradient-based optimizers, they will have exactly the same path, so set the `noise` argument to some small value like (?).
         Also gradient-based optimizers do not adjust their momentum to all the swarm-based operations and thus may perform badly.
@@ -46,9 +46,9 @@ class SwarmOfOptimizers(Optimizer):
 
             old_steps (Optional[int], optional): How many steps until an optimizer is considered old and can die from performing badly. If None, optimizers will never get old. Defaults to None.
 
-            die_after (int, optional): Only has effect if `old_steps` is not None. If an old optimizer doesn't produce the lowest loss at least once for this many consecutive steps, it dies. Defaults to 10.
+            die_after (int, optional): Only has effect if `old_steps` is not None. If an old optimizer doesn't produce the lowest loss at least once for this many consecutive steps, it dies and respawns with new parameters. Defaults to 10.
 
-            crossover_p (float, optional): Only has effect if `old_steps` is not None. Probability that a dead optimizer will get new parameters as crossover between two best optimizers. Otherwise it will just get parameters from the best optimizer. Defaults to 1.
+            crossover_p (float, optional): Only has effect if `old_steps` is not None. Probability that a deceased optimizer respawns as crossover between two best optimizer parameters. Otherwise it will just get parameters from the best optimizer. Defaults to 1.
 
             crossover_strategy (_type_, optional): Only has effect if `old_steps` is not None. The crossover function. Defaults to DEFAULT_CROSSOVER.
 
@@ -83,7 +83,7 @@ class SwarmOfOptimizers(Optimizer):
         self.optimizers = {i: o for i, o in enumerate(optimizers)}
         self.cur_step = 0
 
-    def _init_state(self):
+    def _first_step(self):
         for group, p in foreach_group_param(self.param_groups):
             state = self.state[p]
 
@@ -110,7 +110,7 @@ class SwarmOfOptimizers(Optimizer):
     @torch.no_grad
     def step(self, closure: Callable): # type:ignore #pylint:disable=W0222
         # on first state save model parameters separately for each optimizer
-        if self.cur_step == 0: self._init_state()
+        if self.cur_step == 0: self._first_step()
 
         # log losses
         losses = {}

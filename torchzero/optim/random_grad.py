@@ -127,8 +127,8 @@ class RandomBestGrad(Optimizer):
         negate_worst = True,
         sampler: Callable = torch.randn_like,
     ):
-        """Approximates gradients via random petrubations. This can also be thought of as particle swarm-based algorithm, where particles are sampled from the best point on each step.
-        This generates a `bestof` random petrubations to model parameters and reevaluate the loss with each of them.
+        """Approximates gradients via random petrubations. 
+        This generates a `bestof` random petrubations to model parameters and reevaluate the loss with each of them. 
         `grad` attribute is set to minus best petrubation, or, if no petrubation decreased the loss, it will be set to the worst petrubation.
         Then you can perform a step with any gradient-based optimizer.
 
