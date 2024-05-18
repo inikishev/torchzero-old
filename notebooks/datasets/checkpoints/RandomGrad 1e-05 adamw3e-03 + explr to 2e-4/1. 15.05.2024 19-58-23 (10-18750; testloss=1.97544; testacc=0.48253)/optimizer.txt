@@ -1,6 +1,0 @@
-AcceleratedOptimizer (
-Parameter Group 0
-    lr: 1e-05
-    sampler: <built-in method randn_like of type object at 0x00007FFCC2EAAD50>
-    step_opposite: True
-)

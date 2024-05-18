@@ -26,6 +26,10 @@ class RandomSearch(Optimizer):
         self.lowest_loss = float("inf")
         self.n_steps = 0
 
+        # save all parameters
+        for p in foreach_param(self.param_groups): self.state[p]['best'] = p.clone()
+        # evaluate the initial loss
+
     @torch.no_grad
     def step(self, closure:Callable): # type:ignore #pylint:disable=W0222
         """Performs a single optimization step (parameter update).
@@ -34,11 +38,7 @@ class RandomSearch(Optimizer):
             closure (Callable): A closure that reevaluates the model and returns the loss. The closure is evaluated twice on the first step, and then once per step.
         """
         # on first iteration we calculate the initial loss to compare new parameters to on next iterations
-        if self.n_steps == 0:
-            # save all parameters
-            for p in foreach_param(self.param_groups): self.state[p]['best'] = p.clone()
-            # evaluate the initial loss
-            self.lowest_loss = closure()
+        if self.n_steps == 0: self.lowest_loss = closure()
 
         # make a step
         for group, p in foreach_group_param(self.param_groups):
@@ -66,7 +66,7 @@ class RandomSearch(Optimizer):
         return self.lowest_loss
 
 class RandomShrinkingSearch(Optimizer):
-    def __init__(self, params, lr: float = 1, nsteps:Optional[int] = None, sampler:Callable = torch.randn_like):
+    def __init__(self, params, lr: float = 1, nsteps:Optional[int] = None, sampler:Callable = torch.randn_like, stochastic=False):
         """Random shrinking search. Generates random parameters in a shrinking area around the best found parameters.
 
         Search area size depends on `lr` parameter.
@@ -87,8 +87,17 @@ class RandomShrinkingSearch(Optimizer):
         defaults = dict(lr=lr, nsteps=nsteps, sampler=sampler)
         super().__init__(params, defaults)
 
+        self.stochastic = stochastic
+
         self.lowest_loss = float("inf")
         self.cur_step = 0
+
+        # save all parameters
+        for group, p in foreach_group_param(self.param_groups):
+            state = self.state[p]
+            state['best'] = p.clone()
+            state['init lr'] = group['lr']
+        # evaluate the initial loss
 
     @torch.no_grad
     def step(self, closure:Callable): # type:ignore #pylint:disable=W0222
@@ -98,14 +107,7 @@ class RandomShrinkingSearch(Optimizer):
             closure (Callable): A closure that reevaluates the model and returns the loss. The closure is evaluated twice on the first step, and then once per step.
         """
         # on first iteration we calculate the initial loss to compare new parameters to on next iterations
-        if self.cur_step == 0:
-            # save all parameters
-            for group, p in foreach_group_param(self.param_groups):
-                state = self.state[p]
-                state['best'] = p.clone()
-                state['init lr'] = group['lr']
-            # evaluate the initial loss
-            self.lowest_loss = closure()
+        if self.cur_step == 0 or self.stochastic: self.lowest_loss = closure()
 
         # make a step
         for group, p in foreach_group_param(self.param_groups):

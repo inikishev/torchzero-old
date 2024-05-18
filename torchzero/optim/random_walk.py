@@ -15,9 +15,20 @@ class RandomWalk(Optimizer):
         move_opposite = True,
         propagate_opposite = False,
         stochastic = True,
+        L1 = None,
+        L2 = None,
+        literal_wd = None,
         sampler: Callable = torch.randn_like,
     ):
-        """Vanilla n-th order random walk optimization.
+        """Optimization by anilla n-th order random walk.
+
+        1st-order random walk means that this tries `best_of` petrubations to current position and picks the best to step in.
+        2nd-order random walk tries `best_of` petrubations to current movement direction and picks the best one to petrub the movement direction.
+        3rd-order random walk tries `best_of` petrubations to current acceleration direction, etc.
+
+        If random walk order is higher than one, setting `best_of` to 2 seems to improve it quite strongly.
+
+        The closure is evaluated `bestof + 1` times per step if `stochastic` is True, otherwise `bestof` times.
 
         Args:
             params: Parameters to optimize, usually `model.parameters()`.
@@ -42,6 +53,9 @@ class RandomWalk(Optimizer):
             move_opposite = move_opposite,
             propagate_opposite = propagate_opposite,
             sampler = sampler,
+            L1 = L1,
+            L2 = L2,
+            literal_wd = literal_wd,
         )
         super().__init__(params, defaults)
 
@@ -58,10 +72,31 @@ class RandomWalk(Optimizer):
                     state[f"{i} direction {b}"] = torch.zeros_like(p)
 
 
+    def _get_regularization(self):
+        reg_penality = []
+        for group, p in foreach_group_param(self.param_groups):
+            if (group["L1"] is not None) and (group["L1"] != 0):
+                penalty = p.abs().mean() * group["L1"]
+                reg_penality.append(penalty)
+            if (group["L2"] is not None) and (group["L2"] != 0):
+                penalty = (p ** 2).mean() * group["L2"]
+                reg_penality.append(penalty)
+
+        if len(reg_penality) == 0: return 0
+        return sum(reg_penality) / len(reg_penality)
+
     @torch.no_grad
     def step(self, closure: Callable): # type:ignore #pylint:disable=W0222
+        """Performs a single optimization step (parameter update).
+
+        Args:
+            closure (Callable): A closure that reevaluates the model and returns the loss.
+            The closure is evaluated `bestof + 1` times per step if `stochastic` is True, otherwise `bestof` times.
+        """
         # evaluate loss before a step
-        if self.stochastic or self.cur_step == 0: self.lowest_loss = closure()
+        if self.stochastic or self.cur_step == 0:
+            reg_penalty = self._get_regularization()
+            self.lowest_loss = closure() + reg_penalty
 
         losses = {}
         if self.best_of > 1:
@@ -70,6 +105,8 @@ class RandomWalk(Optimizer):
                 state['before'] = p.clone()
 
         for b in range(self.best_of):
+            reg_penality = []
+
             for group, p in foreach_group_param(self.param_groups):
                 state = self.state[p]
                 order = group['order']
@@ -89,10 +126,24 @@ class RandomWalk(Optimizer):
 
                 p.add_(state[f"0 direction {b}"])
 
+                if (group["literal_wd"] is not None) and (group["literal_wd"] != 0):
+                    p.mul_(1 - group["literal_wd"])
+
                 if self.best_of > 1: state[f'params {b}'] = p.clone()
 
+                # regularization
+                if (group["L1"] is not None) and (group["L1"] != 0):
+                    penalty = p.abs().mean() * group["L1"]
+                    reg_penality.append(penalty)
+                if (group["L2"] is not None) and (group["L2"] != 0):
+                    penalty = (p ** 2).mean() * group["L2"]
+                    reg_penality.append(penalty)
+
+
+            if len(reg_penality) == 0: reg_penality = 0
+            else: reg_penality = sum(reg_penality) / len(reg_penality)
             # evaluate loss after step
-            losses[b] = closure()
+            losses[b] = closure() + reg_penality
 
         losses_sorted = sorted(losses.items(), key=lambda x: x[1])
         lowest_loss = losses_sorted[0][1]
