@@ -3,7 +3,7 @@
 Quick derivative-free recipe for 68% accuracy on MNIST in 10 epochs with a 15k parameters convolutional neural network (can probably get better with tuning):
 ```py
 from from torchzero.optim.random_walk import RandomGrad
-optimizer = RandomGrad(model.parameters(), lr=1e-5, opt=optim.AdamW(MODEL.parameters(), lr=1e-3))
+optimizer = RandomGrad(model.parameters(), lr=1e-5, opt=optim.AdamW(model.parameters(), lr=1e-3))
 
 torch.set_grad_enabled(False)
 for epoch in range(10):
@@ -24,11 +24,11 @@ We can go further, an evolving swarm of 10 of those reaches 82% test accuracy in
 ```py
 from from torchzero.optim.random_walk import RandomGrad, SwarmOfOptimizers
 optimizers = [
-    RandomGrad(MODEL.parameters(), lr=LRGRAD, opt=optim.AdamW(MODEL.parameters(), LR))
+    RandomGrad(model.parameters(), lr=1e-5, opt=optim.AdamW(model.parameters(), 1e-3))
     for _ in range(10)
 ]
 # a swarm is also an torch.optim.Optimizer and uses the same API
-swarm = SwarmOfOptimizers(MODEL.parameters(), optimizers, old_steps=5, die_after=20, crossover_p=0.9) 
+swarm = SwarmOfOptimizers(model.parameters(), optimizers, old_steps=5, die_after=20, crossover_p=0.9) 
 ```
 Each optimizer in a swarm optimizes its own copy of model parameters, and, whenever some optimizer performs badly, it dies and respawns with new parameters that are a crossover between two best optimizers. This can also work on gradient-descent optimizers, but it (currently) won't work well with most optimizers other than plain SGD because momentum doesn't know about all those new swarm update rules.
 
