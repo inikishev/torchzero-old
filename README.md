@@ -3,7 +3,7 @@
 Quick derivative-free recipe for 68% accuracy on MNIST in 10 epochs with a 15k parameters convolutional neural network (can probably get better with tuning):
 ```py
 from from torchzero.optim.random_walk import RandomGrad
-optimizer = RandomGrad(model.parameters(), lr=1e-5, opt=optim.AdamW(model.parameters(), lr=1e-3))
+optimizer = RandomGrad(model.parameters(), magn=1e-5, opt=optim.AdamW(model.parameters(), lr=1e-3))
 
 torch.set_grad_enabled(False)
 for epoch in range(10):
@@ -24,7 +24,7 @@ We can go further, an evolving swarm of 10 of those reaches 82% test accuracy in
 ```py
 from from torchzero.optim.random_walk import RandomGrad, SwarmOfOptimizers
 optimizers = [
-    RandomGrad(model.parameters(), lr=1e-5, opt=optim.AdamW(model.parameters(), 1e-3))
+    RandomGrad(model.parameters(), magn=1e-5, opt=optim.AdamW(model.parameters(), 1e-3))
     for _ in range(10)
 ]
 # a swarm is also an torch.optim.Optimizer and uses the same API
