@@ -1,4 +1,6 @@
 # torchzero
+There aren't many gradient free optimizers for pytorch, so I made a few algorithms into pytorch optimizers. Though this library is not limited to just gradient free ones. Note: Largely WIP
+
 ## 0th order optimization using Random Gradients
 Quick derivative-free recipe for 68% accuracy on MNIST in 10 epochs with a 15k parameters convolutional neural network (can probably get better with tuning):
 ```py
