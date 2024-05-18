@@ -4,7 +4,7 @@ There aren't many gradient free optimizers for pytorch, so I made a few algorith
 ## 0th order optimization using Random Gradients
 Quick derivative-free recipe for 68% accuracy on MNIST in 10 epochs with a 15k parameters convolutional neural network (can probably get better with tuning):
 ```py
-from from torchzero.optim.random_walk import RandomGrad
+from torchzero.optim import RandomGrad
 optimizer = RandomGrad(model.parameters(), magn=1e-5, opt=optim.AdamW(model.parameters(), lr=1e-3))
 
 torch.set_grad_enabled(False)
@@ -24,7 +24,7 @@ So what is happening there? We generate a random petrubation to model parameters
 
 We can go further, an evolving swarm of 10 of those reaches 82% test accuracy in 10 epochs, evaluating the model 10 times per step. I did 0 tuning so it can probably get better, and the accuracy was steadily increasing at the end so more epochs would help.
 ```py
-from from torchzero.optim.random_walk import RandomGrad, SwarmOfOptimizers
+from torchzero.optim import RandomGrad, SwarmOfOptimizers
 optimizers = [
     RandomGrad(model.parameters(), magn=1e-5, opt=optim.AdamW(model.parameters(), 1e-3))
     for _ in range(10)
@@ -41,6 +41,7 @@ Gradient chaining means that after one optimizer updates parameters of the model
 Here is how you can add Nesterov momentum to any optimizer:
 ```py
 from collie.optim.lion import Lion
+from torchzero.optim import GradChain
 
 # Since SGD simply subtracts the gradient, by chaining optimizers with SGD, we can essentially add pure Nesterov momentum
 # we can apply Nesterov momentum before Lion optimizer update rules kick in:
@@ -63,3 +64,20 @@ optimizer = GradChain(
 
 ## Derivative-free optimization methods
 The `optim` submodule implements some derivative-free optimization methods in a form of pytorch optimizers that fully support the pytorch optimizer API, including random search, shrinking random search, grid search, sequential search, random walk, second order random walk. There is also swarm of optimizer which supports both gradient based and gradient free optimizers. I don't really want to do docs yet but they should be straightforward to use. I haven't tested their performance much but that is the goal. You can also check the [notebooks](https://github.com/qq-me/torchzero/tree/main/notebooks/algos) for some visualizations.
+
+Available standalone optimizers:
+- GridSearch - tries all possible combinations of parameters
+- SequentialSearch - iteratively tries all possible values of each parameter sequentially
+- RandomSearch - tries random parameters
+- RandomWalk - 1st order random walk generates random petrubation to parameters and saves it if loss decreases. Higher order random walks generate petrubations to higher order directions
+- SPSA - simultaneous perturbation stochastic approximation, also uses random petrubations but in a different way from random walk.
+
+Gradient approximators, that approximate gradients for gradient based optimizers:
+- RandomGrad - generate a random petrubation to model parameters and reevaluate the loss, if it increases, set gradient to petrubation, otherwise set gradient to minus petrubation
+- SPSA - can also work as gradient approximator
+
+Optimizer wrappers:
+- UpdateToGrad - converts optimizer update into a gradient, so you can use any gradient-free optimizer as gradient approximator, or combine gradient-based optimizers
+- GradientChain - chains optimizers using UpdateToGrad
+- SwarmOfOptimizers - a swarm of optimizers, can function as a genetic algorithm or as a particle optimization algorithm depending on parameters
+- OptimizerAverage - averages the updates of given optimizers.
