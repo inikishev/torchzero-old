@@ -1,0 +1,222 @@
+UltraLongCNN(
+  (encoder): Sequential(
+    (0): Sequential(
+      (0): Conv2d(1, 1, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (1): Sequential(
+      (0): Conv2d(1, 2, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (2): Sequential(
+      (0): Conv2d(2, 3, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (3): Sequential(
+      (0): Conv2d(3, 4, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (4): Sequential(
+      (0): Conv2d(4, 5, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (5): Sequential(
+      (0): Conv2d(5, 6, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (6): Sequential(
+      (0): Conv2d(6, 7, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (7): Sequential(
+      (0): Conv2d(7, 8, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (8): Sequential(
+      (0): Conv2d(8, 9, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (9): Sequential(
+      (0): Conv2d(9, 10, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (10): Sequential(
+      (0): Conv2d(10, 11, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (11): Sequential(
+      (0): Conv2d(11, 12, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (12): Sequential(
+      (0): Conv2d(12, 13, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (13): Sequential(
+      (0): Conv2d(13, 14, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (14): Sequential(
+      (0): Conv2d(14, 15, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (15): Sequential(
+      (0): Conv2d(15, 16, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (16): Sequential(
+      (0): Conv2d(16, 17, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (17): Sequential(
+      (0): Conv2d(17, 18, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (18): Sequential(
+      (0): Conv2d(18, 19, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (19): Sequential(
+      (0): Conv2d(19, 20, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (20): Sequential(
+      (0): Conv2d(20, 21, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (21): Sequential(
+      (0): Conv2d(21, 22, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (22): Sequential(
+      (0): Conv2d(22, 23, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (23): Sequential(
+      (0): Conv2d(23, 24, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (24): Sequential(
+      (0): Conv2d(24, 25, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (25): Sequential(
+      (0): Conv2d(25, 26, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (26): Sequential(
+      (0): Conv2d(26, 27, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+  )
+  (decoder): Sequential(
+    (0): Sequential(
+      (0): ConvTranspose2d(27, 26, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (1): Sequential(
+      (0): ConvTranspose2d(26, 25, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (2): Sequential(
+      (0): ConvTranspose2d(25, 24, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (3): Sequential(
+      (0): ConvTranspose2d(24, 23, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (4): Sequential(
+      (0): ConvTranspose2d(23, 22, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (5): Sequential(
+      (0): ConvTranspose2d(22, 21, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (6): Sequential(
+      (0): ConvTranspose2d(21, 20, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (7): Sequential(
+      (0): ConvTranspose2d(20, 19, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (8): Sequential(
+      (0): ConvTranspose2d(19, 18, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (9): Sequential(
+      (0): ConvTranspose2d(18, 17, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (10): Sequential(
+      (0): ConvTranspose2d(17, 16, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (11): Sequential(
+      (0): ConvTranspose2d(16, 15, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (12): Sequential(
+      (0): ConvTranspose2d(15, 14, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (13): Sequential(
+      (0): ConvTranspose2d(14, 13, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (14): Sequential(
+      (0): ConvTranspose2d(13, 12, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (15): Sequential(
+      (0): ConvTranspose2d(12, 11, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (16): Sequential(
+      (0): ConvTranspose2d(11, 10, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (17): Sequential(
+      (0): ConvTranspose2d(10, 9, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (18): Sequential(
+      (0): ConvTranspose2d(9, 8, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (19): Sequential(
+      (0): ConvTranspose2d(8, 7, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (20): Sequential(
+      (0): ConvTranspose2d(7, 6, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (21): Sequential(
+      (0): ConvTranspose2d(6, 5, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (22): Sequential(
+      (0): ConvTranspose2d(5, 4, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (23): Sequential(
+      (0): ConvTranspose2d(4, 3, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (24): Sequential(
+      (0): ConvTranspose2d(3, 2, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (25): Sequential(
+      (0): ConvTranspose2d(2, 1, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+    (26): Sequential(
+      (0): ConvTranspose2d(1, 1, kernel_size=(2, 2), stride=(1, 1))
+      (1): ReLU()
+    )
+  )
+)

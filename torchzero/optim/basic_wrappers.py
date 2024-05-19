@@ -31,7 +31,7 @@ class RandomOpt(Optimizer):
         self.optimizers = optimizers
         if weights is None: weights = [1] * len(optimizers)
         self.weights = weights
-    
+
     @torch.no_grad
     def step(self, closure: Optional[Callable] = None):# type:ignore #pylint:disable=W0222
         optimizer = random.choices(self.optimizers, weights=self.weights)[0]
@@ -43,7 +43,20 @@ class AlternatingOpt(Optimizer):
         super().__init__(params, {})
         self.optimizers = optimizers
         self.cur_step = 0
-    
+
+    @torch.no_grad
+    def step(self, closure: Optional[Callable] = None):# type:ignore #pylint:disable=W0222
+        optimizer = self.optimizers[self.cur_step % len(self.optimizers)]
+        self.cur_step += 1
+        return optimizer.step(closure)
+
+class PreserveGrad(Optimizer):
+    def __init__(self, params, optimizers:Sequence):
+        """Preserves gradients for gradient approximation based optimizers."""
+        super().__init__(params, {})
+        self.optimizers = optimizers
+        self.cur_step = 0
+
     @torch.no_grad
     def step(self, closure: Optional[Callable] = None):# type:ignore #pylint:disable=W0222
         optimizer = self.optimizers[self.cur_step % len(self.optimizers)]
@@ -101,7 +114,7 @@ class OptimizerAverage(Optimizer):
         if weighted_loss_sum == 0: normalized_weighted_losses = {k: 1/len(weighted_losses) for k in weighted_losses}
         else: normalized_weighted_losses = {k: v / weighted_loss_sum for k,v in weighted_losses.items()}
 
-    
+
 
         # make a step with averaged update
         for group, p in foreach_group_param(self.param_groups):

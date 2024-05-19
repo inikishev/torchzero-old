@@ -8,7 +8,8 @@ from ..random import rademacher_like
 
 class SPSA(Optimizer):
     def __init__(self, params, lr=1e-2, magn = 1e-3, n = 1, formula='spsa', sampler: Callable = rademacher_like, grad=False, opt=None, ):
-        """This generates a small random petrubation `r`, then calculates loss after adding `r` to parameters, and after subtrating `r` from parameters.
+        """Simultaneous perturbation stochastic approximation. 
+        This generates a small random petrubation `r`, then calculates loss after adding `r` to parameters, and after subtrating `r` from parameters.
 
         This can function as a gradient estimator for other gradient-based optimizers if `grad` is True,
         otherwise it functions like a standalone optimizer and subtracts the gradients itself.
@@ -26,7 +27,7 @@ class SPSA(Optimizer):
 
         Args:
             params (_type_): Parameters to optimize, usually model.parameters().
-            lr (_type_, optional): Only takes effect when `grad` is `False`. Learning rate, i.e. multiplier to the approximated gradient. Defaults to 1e-2.
+            lr (_type_, optional): Only takes effect when `grad` is `False`. Step size. Defaults to 1e-2.
             magn (_type_, optional): magnitude of petrubation. Defaults to 1e-5. Many sources recommend decaying this with number of steps.
             n (int, optional): How many random petrubations to generate and average the gradient between them. Defaults to 1.
             formula (str): If `spsa`, uses SPSA formula, if `RDSA`, uses RDSA formula. Defaults to 'spsa'.

@@ -1,0 +1,16 @@
+AcceleratedOptimizer (
+Parameter Group 0
+    agg_mode: best
+    crossover_p: 0.9
+    crossover_strategy: functools.partial(<function crossover_random_strat at 0x0000024A8BD23920>, strats=[<function crossover_swap at 0x0000024A8BD23BA0>, <function crossover_uniform_ at 0x0000024A8BD23740>, <function crossover_onepoint_ at 0x0000024A8BD237E0>, <function crossover_mean at 0x0000024A8BD23880>], weights=[8, 1, 4, 4])
+    die_after: 20
+    gravity: None
+    gravity_mode: best
+    gravity_p: 1
+    init_each: True
+    init_sampler: <function similar_like at 0x0000024AFAEB8680>
+    mean_momentum: None
+    noise: None
+    noise_sampler: <built-in method randn_like of type object at 0x00007FFCA773AD50>
+    old_steps: 5
+)

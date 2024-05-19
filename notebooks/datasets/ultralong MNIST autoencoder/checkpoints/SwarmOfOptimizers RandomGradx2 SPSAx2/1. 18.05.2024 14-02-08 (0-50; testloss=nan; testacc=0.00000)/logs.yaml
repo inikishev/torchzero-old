@@ -1,0 +1,104 @@
+last updates std:
+    count: 49
+    type: <class 'torch.Tensor'>
+    last value: nan
+    lowest: nan
+    highest: nan
+    mean: nan
+
+param max:
+    count: 50
+    type: <class 'torch.Tensor'>
+    last value: nan
+    lowest: nan
+    highest: nan
+    mean: nan
+
+param mean:
+    count: 50
+    type: <class 'torch.Tensor'>
+    last value: nan
+    lowest: nan
+    highest: nan
+    mean: nan
+
+param min:
+    count: 50
+    type: <class 'torch.Tensor'>
+    last value: nan
+    lowest: nan
+    highest: nan
+    mean: nan
+
+param path mean:
+    count: 50
+    type: <class 'list'>
+
+param var:
+    count: 50
+    type: <class 'torch.Tensor'>
+    last value: nan
+    lowest: nan
+    highest: nan
+    mean: nan
+
+test accuracy:
+    count: 2
+    type: <class 'numpy.float64'>
+    last value: 0.0
+    lowest: 0.0
+    highest: 0.0
+    mean: 0.0
+
+test loss:
+    count: 2
+    type: <class 'numpy.float64'>
+    last value: nan
+    lowest: nan
+    highest: nan
+    mean: nan
+
+time:
+    count: 50
+    type: <class 'float'>
+    last value: 31.4169503999874
+    lowest: 9.203529100050218
+    highest: 31.4169503999874
+    mean: 20.32477962201694
+
+train accuracy:
+    count: 50
+    type: <class 'float'>
+    last value: 0.0
+    lowest: 0.0
+    highest: 0.0
+    mean: 0.0
+
+train loss:
+    count: 50
+    type: <class 'float'>
+    last value: nan
+    lowest: nan
+    highest: nan
+    mean: nan
+
+update angle:
+    count: 50
+    type: <class 'torch.Tensor'>
+    last value: nan
+    lowest: nan
+    highest: nan
+    mean: nan
+
+update path mean:
+    count: 50
+    type: <class 'list'>
+
+update var:
+    count: 50
+    type: <class 'torch.Tensor'>
+    last value: nan
+    lowest: nan
+    highest: nan
+    mean: nan
+

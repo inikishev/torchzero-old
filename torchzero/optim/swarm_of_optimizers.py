@@ -7,6 +7,7 @@ import numpy as np
 
 from .utils import foreach_param, foreach_group_param
 from .genetic.crossover import crossover_swap, crossover_uniform_, crossover_onepoint_, crossover_mean, crossover_random_strat
+from ..random import similar_like
 
 DEFAULT_CROSSOVER_STRATS = [crossover_swap, crossover_uniform_, crossover_onepoint_, crossover_mean]
 DEFAULT_CROSSOVER_WEIGHTS = [8, 1, 4, 4]
@@ -28,6 +29,8 @@ class SwarmOfOptimizers(Optimizer):
         mean_momentum: Optional[float] = None,
         agg_mode = "best",
         noise_sampler = torch.randn_like,
+        init_each = False,
+        init_sampler = similar_like
     ):
         """Swarm of optimizers. With default arguments each optimizer gets its own copy of model parameters and optimizes it,
         with no communication between optimizers. It is thus recommended to enable enchancements such as bad optimizers dying and respawning
@@ -65,6 +68,10 @@ class SwarmOfOptimizers(Optimizer):
             agg_mode (str, optional): Aggregation mode, if `best`, after each step, model parameters are set to best optimizer ones, if `mean`, to mean of all optimizers, if `None`, they are parameters of the last optimizer (due to the way its coded). Defaults to "best".
 
             noise_sampler (_type_, optional): A function like `torch.randn_like` to generate noise for `noise` argument. Defaults to torch.randn_like.
+
+            init_each (bool): If True, reinitializes each optimizer's copy of model parameters, so that each optimizer starts from a different point.
+
+            init_sampler (Callable): sampler for `init_each`, by default generates random normal distribution values with same mean and std as given parameter.
         """
         defaults = dict(
             old_steps=old_steps,
@@ -77,19 +84,21 @@ class SwarmOfOptimizers(Optimizer):
             noise=noise,
             mean_momentum=mean_momentum,
             agg_mode = agg_mode,
-            noise_sampler=noise_sampler
+            noise_sampler=noise_sampler,
+            init_each = init_each,
+            init_sampler=init_sampler
         )
         super().__init__(params, defaults)
         self.optimizers = {i: o for i, o in enumerate(optimizers)}
         self.cur_step = 0
 
-    def _first_step(self):
         for group, p in foreach_group_param(self.param_groups):
             state = self.state[p]
 
             # save all paams
             for i in self.optimizers:
-                state[f"{i} params"] = p.clone()
+                if group['init_each']: state[f"{i} params"] = group['init_sampler'](p)
+                else: state[f"{i} params"] = p.clone()
                 state[f"{i} age"] = 0
                 state[f"{i} is old"] = False
                 state[f"{i} bad streak"] = 0
@@ -109,8 +118,6 @@ class SwarmOfOptimizers(Optimizer):
 
     @torch.no_grad
     def step(self, closure: Callable): # type:ignore #pylint:disable=W0222
-        # on first state save model parameters separately for each optimizer
-        if self.cur_step == 0: self._first_step()
 
         # log losses
         losses = {}

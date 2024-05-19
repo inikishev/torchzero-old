@@ -1,0 +1,6 @@
+AcceleratedOptimizer (
+Parameter Group 0
+    magn: 1e-05
+    sampler: <built-in method randn_like of type object at 0x00007FFCA773AD50>
+    step_opposite: True
+)

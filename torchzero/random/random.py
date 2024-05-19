@@ -48,3 +48,17 @@ def rademacher_like(x:torch.Tensor):
     ```
     """
     return rademacher(x.shape, device=x.device, requires_grad=x.requires_grad, dtype=x.dtype)
+
+
+def similar_like(x:torch.Tensor, sampler=torch.randn_like):
+    if x.numel() <= 1: return x.clone()
+    mean = x.mean()
+    std = x.std()
+    if std == 0:
+        if mean == 0: return torch.zeros_like(x)
+        else: return randfill_like(x, sampler=sampler)
+    else:
+        rand = sampler(x)
+        randmean = rand.mean()
+        randstd = rand.std()
+        return rand * (std / randstd) + (mean - randmean * randstd / std)

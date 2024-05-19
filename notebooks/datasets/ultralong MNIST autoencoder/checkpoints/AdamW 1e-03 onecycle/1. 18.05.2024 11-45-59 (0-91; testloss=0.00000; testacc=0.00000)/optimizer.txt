@@ -1,0 +1,18 @@
+AcceleratedOptimizer (
+Parameter Group 0
+    amsgrad: False
+    base_momentum: 0.85
+    betas: (0.9499339870413331, 0.999)
+    capturable: False
+    differentiable: False
+    eps: 1e-08
+    foreach: None
+    fused: None
+    initial_lr: 4e-05
+    lr: 4.0633724403201584e-05
+    max_lr: 0.001
+    max_momentum: 0.95
+    maximize: False
+    min_lr: 4e-09
+    weight_decay: 0.01
+)
