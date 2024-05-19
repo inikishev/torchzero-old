@@ -64,9 +64,8 @@ class SPSA(Optimizer):
                 # generate the petrubation
                 state["petrubation"] = group['sampler'](p) * group['magn']
 
-                if step > 0: p.copy_(state['before'])
-
-                p.add_(state['petrubation'])
+                if step == 0: p.add_(state['petrubation'])
+                else: p.add_(state['petrubation'] * 2)
 
             # evaluate +petrubation
             lossp = closure()
@@ -75,9 +74,7 @@ class SPSA(Optimizer):
             for group, p in foreach_group_param(self.param_groups):
                 state = self.state[p]
 
-                p.copy_(state['before'])
-
-                p.sub_(state['petrubation'])
+                p.sub_(state['petrubation'] * 2)
 
 
             lossn = closure()

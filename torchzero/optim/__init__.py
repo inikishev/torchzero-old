@@ -5,3 +5,5 @@ from .grad_chain import GradChain
 from .grid_search import GridSearch, SequentialSearch
 from .swarm_of_optimizers import SwarmOfOptimizers
 from .spsa import SPSA
+from .stp import STP
+from .two_step_random_search import TwoStepRS
