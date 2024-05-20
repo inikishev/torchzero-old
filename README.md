@@ -71,6 +71,8 @@ Available standalone optimizers:
 - RandomSearch - tries random parameters
 - RandomWalk - 1st order random walk generates random petrubation to parameters and saves it if loss decreases. Higher order random walks generate petrubations to higher order directions
 - SPSA - simultaneous perturbation stochastic approximation, also uses random petrubations but in a different way from random walk.
+- Stochastic Three Points from https://arxiv.org/pdf/1902.03591
+- Two-step random search from https://arxiv.org/pdf/2110.13265
 
 Gradient approximators, that approximate gradients for gradient based optimizers:
 - RandomGrad - generate a random petrubation to model parameters and reevaluate the loss, if it increases, set gradient to petrubation, otherwise set gradient to minus petrubation
