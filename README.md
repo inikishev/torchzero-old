@@ -76,7 +76,7 @@ Available standalone optimizers:
 
 Gradient approximators, that approximate gradients for gradient based optimizers:
 - RandomGrad - generate a random petrubation to model parameters and reevaluate the loss, if it increases, set gradient to petrubation, otherwise set gradient to minus petrubation
-- SPSA - can also work as gradient approximator
+- SPSA - can also work as gradient approximator, so you get AdamSPSA or your-favourite-opimizer-SPSA for free.
 
 Optimizer wrappers:
 - UpdateToGrad - converts optimizer update into a gradient, so you can use any gradient-free optimizer as gradient approximator, or combine gradient-based optimizers
