@@ -77,7 +77,7 @@ class RandomGrad(Optimizer):
             # save the params
             state['backup'] = p.clone()
             # create a random direction
-            direction = group['sampler'](p, device=p.device) * group["magn"]
+            direction = group['sampler'](p) * group["magn"]
             state["direction"] = direction
             # add it
             p.add_(direction)
