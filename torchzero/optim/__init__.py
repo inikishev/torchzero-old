@@ -7,3 +7,4 @@ from .swarm_of_optimizers import SwarmOfOptimizers
 from .spsa import SPSA
 from .stp import STP
 from .two_step_random_search import TwoStepRS
+from .fractional import FractionalOptimizer
