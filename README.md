@@ -83,3 +83,4 @@ Optimizer wrappers:
 - GradientChain - chains optimizers using UpdateToGrad
 - SwarmOfOptimizers - a swarm of optimizers, can function as a genetic algorithm or as a particle optimization algorithm depending on parameters
 - OptimizerAverage - averages the updates of given optimizers.
+- FractionalOptimizer - wraps any gradient-based optimizer and gives it fractional order as described in https://www.mdpi.com/2504-3110/7/7/500
