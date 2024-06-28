@@ -2,10 +2,10 @@
 import torch
 
 __all__ = [
-    'LMLinear',
+    'LILinear',
 ]
 
-class LMLinear(torch.nn.Module):
+class LILinear(torch.nn.Module):
     def __init__(self, in_size, bias = True, init = torch.nn.init.kaiming_normal_):
         """Learnable-Matrix linear layer. Takes in a 3D BXY tensor, returns B1Y.
 
@@ -27,5 +27,5 @@ class LMLinear(torch.nn.Module):
 
 if __name__ == "__main__":
     test = torch.randn(16, 10, 5)
-    model = LMLinear((10, 5))
+    model = LILinear((10, 5))
     print(model(test).shape)

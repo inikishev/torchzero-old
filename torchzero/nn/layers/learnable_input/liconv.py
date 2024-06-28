@@ -1,14 +1,14 @@
-"""Learnable matrix convolution, WIP"""
+"""Learnable input convolution, WIP"""
 import torch
 
 __all__ = [
-    'LMConv',
-    'LMConvTranspose',
+    'LIConv',
+    'LIConvTranspose',
 ]
 def apply_learned_conv(x, filters):
     return torch.stack([torch.nn.functional.conv2d(image, filters[i]) for i, image in enumerate(x)]) # pylint: disable=E1102
 
-class LMConv(torch.nn.Module):
+class LIConv(torch.nn.Module):
     def __init__(self, mat_size, in_channels, bias = True, mode = "in", stride = 1, padding = 0, dilation = 1, init = torch.nn.init.kaiming_normal_):
         """
         Uses input as kernel to convolve a learnable matrix of size `mat_size` which needs to be `(H, W)` for 2d input.
@@ -48,7 +48,7 @@ class LMConv(torch.nn.Module):
         # if self.has_bias: return torch.stack([self.conv(self.weight, batch_el, bias = self.bias) for batch_el in x.unsqueeze(self.mode)]).squeeze(1)
         # return torch.stack([self.conv(self.weight, batch_el) for batch_el in x.unsqueeze(self.mode)]).squeeze(1)
 
-class LMConvTranspose(torch.nn.Module):
+class LIConvTranspose(torch.nn.Module):
     def __init__(self, mat_size, in_channels, bias = True, mode = "in", stride = 1, padding = 0, dilation = 1, init = torch.nn.init.kaiming_normal_):
         """
         Uses input as kernel to convolve a learnable matrix of size `mat_size` which needs to be `(H, W)` for 2d input.
@@ -91,9 +91,9 @@ class LMConvTranspose(torch.nn.Module):
 
 
 if __name__ == "__main__":
-    rc_in = LMConv((64, 64), 3, bias = True, mode = "in")
+    rc_in = LIConv((64, 64), 3, bias = True, mode = "in")
     batch = torch.randn(16, 3, 28, 28)
     print(rc_in(batch).shape)
 
-    rc_out = LMConv((64, 64), 3, bias = True, mode = "out")
+    rc_out = LIConv((64, 64), 3, bias = True, mode = "out")
     print(rc_out(batch).shape)

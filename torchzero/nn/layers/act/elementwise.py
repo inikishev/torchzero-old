@@ -1,48 +1,15 @@
+import functools
 from typing import Optional
 from torch import nn
 import torch.nn.functional as F
 import torch
-import functools
 
 __all__ = [
-    'GeneralReLU',
-    'SymmetricReLU',
-    'ElementwiseReLU',
-    'ElementwiseLeakyReLU',
-    'ElementwiseResidualReLU',
-    'ElementwiseLeakyResidualReLU',
-    'SineAct',
-    'VAct',
+    "ElementwiseReLU",
+    "ElementwiseLeakyReLU",
+    "ElementwiseResidualReLU",
+    "ElementwiseLeakyResidualReLU",
 ]
-
-class GeneralReLU(nn.Module):
-    """
-    FROM FASTAI COURSES. Leaky ReLU but shifted down.
-    """
-    def __init__(self, leak = None, sub = None, maxv = None):
-        super().__init__()
-        self.leak, self.sub, self.maxv = leak, sub, maxv
-
-    def forward(self, x):
-        x = F.leaky_relu(x, self.leak) if self.leak else F.relu(x)
-        if self.sub is not None: x -= self.sub
-        if self.maxv is not None: x.clamp_max_(self.maxv)
-        return x
-
-
-class SymmetricReLU(nn.Module):
-    """Symmetric version of leaky ReLU."""
-    def __init__(self, leak: float = 0.2, sub: float = 1, maxv: Optional[bool] = None):
-        super().__init__()
-        self.leak, self.sub, self.maxv = leak, sub,  maxv
-
-    def forward(self, x: torch.Tensor):
-        # нижний отрезок
-        x = F.leaky_relu(x+self.sub, self.leak) - self.sub
-        # верхний отрезок
-        x = -F.leaky_relu(-x + self.sub, self.leak) + self.sub
-        return x
-
 
 class ElementwiseReLU(nn.Module):
     """Random ReLU: uses a random array as separate ReLU for each individual pixel with random thresholds.
@@ -61,9 +28,7 @@ class ElementwiseReLU(nn.Module):
 class ElementwiseLeakyReLU(nn.Module):
     """Random leaky ReLU: uses a random array as separate ReLU for each individual pixel with random thresholds.
 
-    `in_size`: `(C, H, W)` for 2d inputs.
-
-    This can't be learnable. (yet)"""
+    `in_size`: `(C, H, W)` for 2d inputs."""
     def __init__(self, in_size, leak=0.1, learnable = True, init = functools.partial(torch.nn.init.uniform_, a=-1, b=1), ):
         super().__init__()
         self.thresholds = torch.nn.Parameter(torch.zeros(in_size), requires_grad = learnable)
@@ -71,13 +36,8 @@ class ElementwiseLeakyReLU(nn.Module):
         self.leak = leak
 
     def forward(self, x):
-        x[x < self.thresholds] *= self.leak
-        return x
+        return torch.maximum(x, self.thresholds) + torch.minimum(x, self.thresholds) * self.leak
 
-if __name__ == "__main__":
-    plReLU = ElementwiseLeakyReLU((3, 28, 28), 0.1, True)
-    batch = torch.randn(16, 3, 28, 28)
-    print(plReLU(batch).shape)
 
 class ElementwiseResidualReLU(nn.Module):
     """Random residual leaky ReLU: uses a random array as separate ReLU for each individual pixel with random thresholds.
@@ -94,7 +54,7 @@ class ElementwiseResidualReLU(nn.Module):
         self.residual = residual
 
     def forward(self, x):
-        return torch.maximum(x, self.thresholds) + x*self.residual
+        return torch.maximum(x, self.thresholds) + x * self.residual
 
 class ElementwiseLeakyResidualReLU(nn.Module):
     """Random residual leaky ReLU: uses a random array as separate ReLU for each individual pixel with random thresholds.
@@ -112,26 +72,9 @@ class ElementwiseLeakyResidualReLU(nn.Module):
         self.leak = leak
 
     def forward(self, x):
-        return torch.where(x > self.thresholds, x, x * self.leak) + x*self.residual
-
-class SineAct(nn.Module):
-    """`sin` act function wrapped into an `nn.Module` for convenience, calls `torch.sin(x)`."""
-    def __init__(self):
-        super().__init__()
-    def forward(self, x): return torch.sin(x)
-
-class VAct(nn.Module):
-    """A simple piecewise V-shaped activation function"""
-    def __init__(self, inverse = False):
-        super().__init__()
-        self.inverse = inverse
-    def forward(self, x):
-        if self.inverse: return torch.where(x < 0, x, -x)
-        return torch.where(x < 0, -x, x)
+        return torch.maximum(x, self.thresholds) + torch.minimum(x, self.thresholds) * self.leak + x * self.residual
 
 if __name__ == "__main__":
-    plReLU = ElementwiseLeakyReLU((3, 28, 28), 0.1, True)
+    EwReLU = ElementwiseLeakyReLU((3, 28, 28), 0.1, True)
     batch = torch.randn(16, 3, 28, 28)
-    print(plReLU(batch).shape)
-
-
+    print(EwReLU(batch).shape)
