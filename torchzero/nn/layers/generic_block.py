@@ -25,15 +25,19 @@ _MODULE_CREATORS = {
 def _create_module_order(
     modules: dict[str, Any],
     order: str,
-    num_channels: Optional[int],
+    main_module:str,
+    in_channels: Optional[int],
+    out_channels: Optional[int],
     ndim: Optional[int],
     spatial_size: Optional[Sequence[int]],
 ):
     module_order = []
     # capitalize letters
     modules = {k.upper():v for k,v in modules.items()}
+    num_channels = in_channels
     # for each letter
     for c in order.upper():
+        if c == main_module.upper(): num_channels = out_channels
         # create module if in known module creators
         if c in _MODULE_CREATORS: mod = _MODULE_CREATORS[c](modules[c], num_channels=num_channels, ndim=ndim, spatial_size=spatial_size)
         # otherwise take from modules
@@ -54,6 +58,7 @@ def _create_module_order(
 class GenericBlock(torch.nn.Module):
     def __init__(self,
         module: torch.nn.Module | Callable | Sequence[torch.nn.Module | Callable],
+        in_channels: Optional[int] = None,
         out_channels: Optional[int] = None,
         norm: Optional[torch.nn.Module | str | bool | Callable] = None,
         dropout: Optional[float | torch.nn.Module | Callable] = None,
@@ -72,7 +77,9 @@ class GenericBlock(torch.nn.Module):
         self.layers = _create_module_order(
             modules = dict(M=self.module, P=pool, A=act, N=norm, D=dropout),
             order = order,
-            num_channels = out_channels,
+            main_module='M',
+            in_channels = in_channels,
+            out_channels = out_channels,
             ndim = ndim,
             spatial_size = spatial_size,
             )

@@ -122,3 +122,4 @@ class ConvCube(ConvBlock):
         kwargs.pop('cls')
 
         return functools.partial(cls, **kwargs)
+

@@ -1,101 +1,166 @@
-from typing import Any
+from typing import Any, Literal
 import torch
-from torchzero.nn.cubes import *
-from torchzero.nn.cubes.chain import _generate_channels
+from ..cubes.conv import ConvCube
+from ..cubes.convtranspose import ConvTransposeStrideCube
+from ..cubes.chain import ChainCube, StraightAndResizeCube
+from ..cubes.chain import _generate_channels
 from ..cubes._utils import _unsupported_by_this_cube, _process_partial_seq
-
-DownConvBlock = StraightAndResizeCube.partial(
-    straight_cube=ConvCube.partial(kernel_size=2, act="relu", norm="batchnorm", dropout=0.5),
-    resize_cube=MaxPoolCube,
-    straight_num=2,
-    channel_mode="out",
-    only_straight_channels=True,
-)
-
-UpConvBlock = StraightAndResizeCube.partial(
-    straight_cube=ConvCube.partial(kernel_size=2, act="relu", norm="batchnorm", dropout=0.5),
-    resize_cube=ConvTransposeStrideCube.partial(act="relu", norm="batchnorm"),
-    straight_num=2,
-    channel_mode="in",
-    only_straight_channels=False,
-)
-
-StraightConvBlock = ChainCube.partial(
-    cube=ConvCube.partial(kernel_size=2, act="relu", norm="batchnorm", dropout=0.5),
-    num=2,
-    channel_mode="out",
-)
-
-LastConvBlock = (ConvCube.partial(kernel_size=2, act='relu', norm='batchnorm', dropout=0.5), ConvCube.partial(kernel_size=1))
+from ..layers.pad import pad_like
 
 class UNet(torch.nn.Module):
     def __init__(
         self,
         in_channels,
         out_channels,
-        ndim = 2,
-        levels = 4,
-        first_out_channels = 64,
-        hidden_channels = 192,
-        last_in_channels = 64,
-        middle_out_channels = None,
-        first: Any = StraightConvBlock,
-        down: Any = DownConvBlock,
-        middle: Any = StraightConvBlock,
-        up: Any = UpConvBlock,
-        last: Any = LastConvBlock,
-        snap_channels = 16,
-        path_dropout = None,
+        ndim,
+        straight: Any = ConvCube.partial(3, act='relu', norm='bn', dropout=0.5, order='NADC'),
+        downsample: Any = ConvCube.partial(3, resample='stride'),
+        upsample: Any = ConvTransposeStrideCube.partial(),
+        first: Any = ConvCube.partial(3),
+        head: Any = ConvCube.partial(1),
+        blocks_per_level = 2,
+        middle_blocks = 3,
+        encoder_channels = (32, 64, 96, 128),
+        decoder_channels = (192, 128, 96, 64),
+        skip: Literal['cat', 'sum'] = 'cat',
         scale = _unsupported_by_this_cube,
     ):
+        """Use `norm/act/dropout -> conv` in blocks.
+
+        UNet:
+            first: conv
+            downblock: [norm -> act -> dropout -> conv -> `downsample`] per `encoder_channels`
+            middle: [norm -> act -> dropout -> conv] per `middle_blocks`
+            upblock: [`upsample` -> norm -> act -> dropout -> conv] per `decoder_channels`
+            head: conv
+
+        Or with normal ordering:
+        UNet:
+            first: conv -> act -> norm -> dropout
+            downlock: [conv -> act -> norm -> dropout -> `downsample`] per `encoder_channels`
+            middle: [conv -> act -> norm -> dropout] per `middle_blocks`
+            uplock: [`upsample` -> conv -> act -> norm -> dropout] per `decoder_channels`
+            head: conv
+
+
+        Args:
+            in_channels (_type_): _description_
+            out_channels (_type_): _description_
+            ndim (_type_): _description_
+            straight (Any, optional): _description_. Defaults to SingleConv.
+            downsample (Any, optional): _description_. Defaults to UNetDown.
+            upsample (Any, optional): _description_. Defaults to NiNBlock.
+            first (Any, optional): _description_. Defaults to UNetUp.
+            head (Any, optional): _description_. Defaults to LastConvBlock.
+            encoder_channels (tuple, optional): _description_. Defaults to (32, 64, 128, 192).
+            decoder_channels (tuple, optional): _description_. Defaults to (256, 192, 128, 64).
+            scale (_type_, optional): _description_. Defaults to _unsupported_by_this_cube.
+
+        Raises:
+            ValueError: _description_
+        """
         super().__init__()
 
-        if middle_out_channels is None:
-            middle_out_channels = hidden_channels
+        self.skip = skip
 
-        if first is not None:
-            if isinstance(first, torch.nn.Module): self.first = first
-            else: self.first = _process_partial_seq(first)(in_channels=in_channels, out_channels=first_out_channels, ndim=ndim,scale=None,)
+        if straight is not None: straight = _process_partial_seq(straight)
+        downsample = _process_partial_seq(downsample)
+        upsample = _process_partial_seq(upsample)
+        if first is not None: first = _process_partial_seq(first)
+        if head is not None: head = _process_partial_seq(head)
+
+        if len(encoder_channels) != len(decoder_channels):
+            raise ValueError(f"encoder_channels and decoder_channels must have the same length, {encoder_channels = }, {decoder_channels = }")
+
+        if first is not None: self.first = first(in_channels=in_channels, out_channels=encoder_channels[0], ndim=ndim, scale=None)
         else: self.first = None
 
-        if last is not None:
-            if isinstance(last, torch.nn.Module): self.last = last
-            else: self.last = _process_partial_seq(last)(in_channels=last_in_channels, out_channels=out_channels, ndim=ndim,scale=None,)
-        else: self.last = None
+        if straight is not None:
+            down_block = StraightAndResizeCube.partial(
+                straight_cube=straight,
+                resize_cube=downsample,
+                straight_num=blocks_per_level,
+                channel_mode="in",
+                only_straight_channels=False,
+            )
+        else:
+            down_block = downsample
 
-        if middle is not None:
-            if isinstance(middle, torch.nn.Module): self.middle = middle
-            else: self.middle = _process_partial_seq(middle)(in_channels=hidden_channels, out_channels=middle_out_channels, ndim=ndim, scale=None, )
-        else: self.middle = None
-
-        self.encoder = ChainCube(
-            cube=_process_partial_seq(down),
-            num=levels,
-            in_channels=first_out_channels if self.first is not None else in_channels,
-            out_channels=hidden_channels,
-            ndim=ndim,
-            scale=0.5,
-            return_each=True,
-            snap_channels=snap_channels,
+        self.down = torch.nn.ModuleList(
+            [
+                down_block(
+                    in_channels=encoder_channels[i],
+                    out_channels=encoder_channels[i + 1],
+                    ndim=ndim,
+                    scale=0.5,
+                )
+                for i in range(len(encoder_channels) - 1)
+            ]
         )
 
-        self.decoder = ChainCube(
-            cube=_process_partial_seq(up),
-            num=levels,
-            in_channels=hidden_channels if self.middle is None else middle_out_channels,
-            out_channels=last_in_channels if self.last is not None else out_channels,
-            ndim=ndim,
-            scale=2,
-            snap_channels=snap_channels,
-            cat_channels=list(reversed(self.encoder.channels))[1:-1],
-            cat_idxs=slice(1, None),
-            cat_dropout=path_dropout,
+        if middle_blocks > 0:
+            self.middle = ChainCube(
+                in_channels=encoder_channels[-1],
+                out_channels=decoder_channels[0],
+                ndim = 2,
+                cube=straight,
+                num=middle_blocks,
+                channel_mode='in'
+            )
+        else: 
+            if encoder_channels[-1] != decoder_channels[0]: 
+                raise ValueError(f"{middle_blocks = }, while ({encoder_channels[-1] = }) != ({decoder_channels[0] = })")
+            self.middle = None
+
+        if straight is not None:
+            up_block = StraightAndResizeCube.partial(
+                straight_cube=straight,
+                resize_cube=upsample,
+                straight_num=blocks_per_level,
+                channel_mode="out",
+                only_straight_channels=False,
+                order = "RS",
+            )
+        else: up_block = upsample
+
+        self.up = torch.nn.ModuleList(
+            [
+                up_block(
+                    in_channels = encoder_channels[-i] * int(self.skip == "cat") + decoder_channels[i - 1],
+                    out_channels = decoder_channels[i],
+                    ndim = ndim,
+                    scale = 2,
+                )
+                for i in range(1, len(decoder_channels))
+            ]
+        )
+
+        self.head = head(
+            in_channels = decoder_channels[-1] + ((encoder_channels[0] * int(self.first is not None) + in_channels) * int(self.skip == "cat")),
+            out_channels = out_channels,
+            ndim = ndim,
+            scale = None,
         )
 
     def forward(self, x: torch.Tensor):
-        if self.first is not None: x = self.first(x)
-        x, each = self.encoder(x)
+        x0 = x
+        if self.first is not None: x1 = x = self.first(x)
+        else: x1 = None
+
+        each = []
+        for mod in self.down:
+            x = mod(x)
+            each.append(x)
+
         if self.middle is not None: x = self.middle(x)
-        x = self.decoder(x, cat_levels=list(reversed(each))[1:])
-        if self.last is not None: x = self.last(x)
-        return x
+
+        for mod, y in zip(self.up, reversed(each)):
+            if self.skip == 'cat': x = mod(torch.cat([x, y], dim=1))
+            else: x = mod(x + pad_like(y, target=x, where='start', value=0))
+
+        if self.skip == 'cat':
+            if x1 is not None: return self.head(torch.cat([x, x1, x0], dim=1))
+            return self.head(torch.cat([x, x0], dim=1))
+
+        if x1 is not None: return self.head(x + pad_like(x1, x, 'start') + pad_like(x0, x, 'end'))
+        return self.head(x + pad_like(x0, x, 'start'))

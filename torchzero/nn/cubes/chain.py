@@ -192,15 +192,22 @@ class StraightAndResizeCube(torch.nn.Module):
         self.channels = _generate_channels(in_channels, out_channels, mode=channel_mode, num=num, snap=snap_channels)
 
         self.blocks = torch.nn.Sequential()
-        for char in order:
-            if char == 'S':
+        if order == 'SR':
                 for i in range(straight_num):
                     self.blocks.append(ensure_module(straight_cube(in_channels = self.channels[i], out_channels = self.channels[i+1], scale=None, ndim=ndim)))
-            elif char == 'R':
                 if only_straight_channels:
                     self.blocks.append(ensure_module(resize_cube(in_channels = self.channels[-1], out_channels = None, scale=scale, ndim=ndim)))
                 else:
                     self.blocks.append(ensure_module(resize_cube(in_channels = self.channels[-2], out_channels = self.channels[-1], scale=scale, ndim=ndim)))
+        elif order == 'RS':
+            if only_straight_channels:
+                self.blocks.append(ensure_module(resize_cube(in_channels = self.channels[0], out_channels = None, scale=scale, ndim=ndim)))
+            else:
+                self.blocks.append(ensure_module(resize_cube(in_channels = self.channels[0], out_channels = self.channels[1], scale=scale, ndim=ndim)))
+            for i in range(straight_num):
+                index = i + int(not only_straight_channels)
+                self.blocks.append(ensure_module(straight_cube(in_channels = self.channels[index], out_channels = self.channels[index+1], scale=None, ndim=ndim)))
+
 
     def forward(self, x): return self.blocks(x)
 

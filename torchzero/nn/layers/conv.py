@@ -29,6 +29,13 @@ def _get_samesize_padding_float(kernel_size:int | Sequence[int]) -> float | tupl
     if isinstance(kernel_size, int): return (kernel_size - 1) / 2
     else: return tuple([_get_samesize_padding_float(i) for i in kernel_size]) # type:ignore
 
+
+def _act_is_first(order:str, main_char:str):
+    order = order.upper()
+    for char in order:
+        if char == 'A': return True
+        elif char == main_char: return False
+
 class ConvBlock(torch.nn.Module):
     def __init__(self,
         in_channels: Optional[int],
@@ -110,7 +117,9 @@ class ConvBlock(torch.nn.Module):
         self.layers = _create_module_order(
             modules = dict(C=conv_layer, P=pool, A=act, N=norm, D=dropout, U=upsample, _=crop),
             order = order.replace("C", "C_"),
-            num_channels = out_channels,
+            main_module='C',
+            in_channels = in_channels,
+            out_channels=out_channels,
             ndim = ndim,
             spatial_size = spatial_size,
             )
@@ -204,7 +213,9 @@ class ConvTransposeBlock(torch.nn.Module):
         self.layers = _create_module_order(
             modules = dict(C=upconv_layer, U=upsample, A=act, N=norm, D=dropout, P=pool),
             order = order,
-            num_channels = out_channels,
+            main_module='C',
+            in_channels = in_channels,
+            out_channels=out_channels,
             ndim = ndim,
             spatial_size = spatial_size,
             )

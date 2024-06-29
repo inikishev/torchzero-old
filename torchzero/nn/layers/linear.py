@@ -48,7 +48,9 @@ class LinearBlock(torch.nn.Module):
         self.layers = _create_module_order(
             modules = dict(L=self.linear, A=act, N=norm, D=dropout, F=flatten),
             order = order,
-            num_channels = out_features,
+            main_module='L',
+            in_channels = in_features,
+            out_channels= out_features,
             ndim = 0,
             spatial_size = None,
             )
