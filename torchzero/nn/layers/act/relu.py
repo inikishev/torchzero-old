@@ -3,17 +3,6 @@ from torch import nn
 import torch.nn.functional as F
 import torch
 
-__all__ = [
-    'GeneralReLU',
-    'SymmetricReLU',
-    "LearnableReLU",
-    'LearnableLeakyReLU',
-    'LearnableGeneralReLU',
-    'LearnableSymmetricReLU',
-    "general_relu",
-    "symmetric_relu",
-]
-
 FloatOrTensor = int | float | torch.Tensor
 
 def general_relu(x, leak:Optional[float] = None, sub:Optional[float] = None, maxv: Optional[FloatOrTensor] = None, inplace=True):
@@ -46,7 +35,7 @@ class GeneralReLU(nn.Module):
         self.inplace = inplace
 
 
-    def forward(self, x): 
+    def forward(self, x):
         return general_relu(x, leak = self.leak, sub = self.sub, maxv = self.maxv, inplace=self.inplace)
 
 def symmetric_relu(x, leak:float = 0.2, sub:float = 1., maxv: Optional[FloatOrTensor] = None, inplace=True):
@@ -63,7 +52,7 @@ def symmetric_relu(x, leak:float = 0.2, sub:float = 1., maxv: Optional[FloatOrTe
     if maxv is not None: x = x.minimum(maxv)
     return x
 
-class SymmetricReLU(nn.Module):
+class SymReLU(nn.Module):
     def __init__(self, leak: float = 0.2, sub: float = 1, maxv: Optional[FloatOrTensor] = None, inplace=True):
         """Symmetric version of leaky ReLU.
 
@@ -78,10 +67,10 @@ class SymmetricReLU(nn.Module):
         self.leak, self.sub = leak, sub
         self.inplace = inplace
 
-    def forward(self, x: torch.Tensor): 
+    def forward(self, x: torch.Tensor):
         return symmetric_relu(x, leak = self.leak, sub = self.sub, maxv = self.maxv, inplace=self.inplace)
 
-class LearnableReLU(nn.Module):
+class LearnReLU(nn.Module):
     def __init__(self):
         """ReLU with a learnable threshold.
         """
@@ -91,7 +80,7 @@ class LearnableReLU(nn.Module):
     def forward(self, x: torch.Tensor):
         return torch.maximum(x, self.threshold)
 
-class LearnableLeakyReLU(nn.Module):
+class LearnLeakyReLU(nn.Module):
     def __init__(self, leak_init = 0.1):
         """Leaky ReLU with learnable threshold and leak.
 
@@ -105,9 +94,9 @@ class LearnableLeakyReLU(nn.Module):
     def forward(self, x: torch.Tensor):
         return torch.maximum(x, self.threshold) + torch.minimum(x, self.threshold) * self.leak
 
-class LearnableGeneralReLU(nn.Module):
+class LearnGeneralReLU(nn.Module):
     def __init__(self, leak_init = 0.1, sub_init = 0.1, maxv_init:Optional[float] = 10.):
-        """GeneralReLU described by Jeremy Howard in his fastai courses, but also learnable. 
+        """GeneralReLU described by Jeremy Howard in his fastai courses, but also learnable.
         This is calculated as `(LeakyReLU(x, threshold = W1, leak=W2) - W3).clamp(min=W4, max=W5)`. All W's are learnable.
 
         Args:
@@ -127,9 +116,9 @@ class LearnableGeneralReLU(nn.Module):
         if self.maxv is not None: x = x.minimum(self.maxv)
         return x
 
-class LearnableSymmetricReLU(nn.Module):
-    def __init__(self, leak_init = 0.1, sub_init = 0.1, maxv_init:Optional[float] = 10., minv_init:Optional[float] = -10):
-        """Symmetric version of leaky ReLU with learnable threshold, leak, and vertical position and min/max values.
+class LearnSymReLU(nn.Module):
+    def __init__(self, lower_leak_init = 0.1, upper_leak_init = 0.1, sub_init = 0.1, maxv_init:Optional[float] = 10., minv_init:Optional[float] = -10.):
+        """Symmetric version of leaky ReLU with learnable threshold, lower and upper leaks, and vertical position and min/max values.
 
         Args:
             leak_init (float, optional): _description_. Defaults to 0.1.
@@ -139,19 +128,34 @@ class LearnableSymmetricReLU(nn.Module):
         """
         super().__init__()
         self.threshold = nn.Parameter(torch.tensor(0.), requires_grad=True)
-        self.leak = nn.Parameter(torch.tensor(leak_init), requires_grad=True)
-        self.sub = nn.Parameter(torch.tensor(sub_init), requires_grad=True)
+        self.lower_leak = nn.Parameter(torch.tensor(float(lower_leak_init)), requires_grad=True)
+        self.upper_leak = nn.Parameter(torch.tensor(float(upper_leak_init)), requires_grad=True)
+        self.sub = nn.Parameter(torch.tensor(float(sub_init)), requires_grad=True)
 
-        if maxv_init is not None: self.maxv = nn.Parameter(torch.tensor(maxv_init), requires_grad=True)
+        if maxv_init is not None: self.maxv = nn.Parameter(torch.tensor(float(maxv_init)), requires_grad=True)
         else: self.maxv = None
-        if minv_init is not None: self.minv = nn.Parameter(torch.tensor(minv_init), requires_grad=True)
+        if minv_init is not None: self.minv = nn.Parameter(torch.tensor(float(minv_init)), requires_grad=True)
         else: self.minv = None
 
 
     def forward(self, x: torch.Tensor):
         # lower part
-        x = (torch.maximum(x, self.threshold) + torch.minimum(x, self.threshold) * self.leak) - self.sub
+        x = (torch.maximum(x, self.threshold) + torch.minimum(x, self.threshold) * self.lower_leak) - self.sub
         # upper part
-        x = -((torch.maximum(-x, self.threshold) + torch.minimum(-x, self.threshold) * self.leak) - self.sub)
+        x = -((torch.maximum(-x, self.threshold) + torch.minimum(-x, self.threshold) * self.upper_leak) - self.sub)
         if self.maxv is not None: x = x.minimum(self.maxv)
         if self.minv is not None: x = x.maximum(self.minv)
+        return x
+
+
+
+__all__ = [
+    'GeneralReLU',
+    'SymReLU',
+    "LearnReLU",
+    'LearnLeakyReLU',
+    'LearnGeneralReLU',
+    'LearnSymReLU',
+    "general_relu",
+    "symmetric_relu",
+]
