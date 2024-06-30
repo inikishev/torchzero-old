@@ -5,6 +5,7 @@ import functools
 import torch
 from ..layers.conv import ConvBlock
 from .._library.pool import create_pool
+from ._utils import _get_partial_from_locals
 
 __all__ = [
     "ConvCube",
@@ -72,8 +73,7 @@ class ConvCube(ConvBlock):
         else:
             # if resample is None
             if resample is None:
-                if scale == 1: resample = 'stride'
-                elif scale < 1: resample = 'pool'
+                if scale <= 1: resample = 'stride'
                 else: resample = 'upsample'
 
             # if resample is callable, stride is one and resample is considered the pool module
@@ -119,7 +119,5 @@ class ConvCube(ConvBlock):
         ):
 
         kwargs = locals().copy()
-        kwargs.pop('cls')
-
-        return functools.partial(cls, **kwargs)
+        return _get_partial_from_locals(cls, kwargs)
 

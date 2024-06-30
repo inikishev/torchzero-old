@@ -8,7 +8,7 @@ import torch
 
 from ..layers.func import ensure_module
 from ..layers.pad import pad_like
-from ._utils import _process_partial_seq, _snap_int
+from ._utils import _process_partial_seq, _snap_int, _get_partial_from_locals
 
 __all__ = [
     'ChainCube',
@@ -139,16 +139,9 @@ class ChainCube(torch.nn.Module):
         recurrent = 1,
         return_each = False,
         ):
-        return functools.partial(
-            cls,
-            cube=cube,
-            num=num,
-            channel_mode=channel_mode,
-            scale_cubes=scale_cubes,
-            residual=residual,
-            recurrent=recurrent,
-            return_each=return_each,
-        )
+        kwargs = locals().copy()
+        return _get_partial_from_locals(cls, kwargs)
+
 
 
 class StraightAndResizeCube(torch.nn.Module):
@@ -220,12 +213,5 @@ class StraightAndResizeCube(torch.nn.Module):
         only_straight_channels = True,
         order: Literal['SR', 'RS'] = "SR",
         ):
-        return functools.partial(
-            cls,
-            straight_cube=straight_cube,
-            resize_cube=resize_cube,
-            straight_num=straight_num,
-            channel_mode=channel_mode,
-            only_straight_channels = only_straight_channels,
-            order=order,
-        )
+        kwargs = locals().copy()
+        return _get_partial_from_locals(cls, kwargs)

@@ -1,166 +1,174 @@
 from typing import Any, Literal
+from collections.abc import Sequence
 import torch
 from ..cubes.conv import ConvCube
 from ..cubes.convtranspose import ConvTransposeStrideCube
+from ..cubes.maxpool import MaxPoolCube
 from ..cubes.chain import ChainCube, StraightAndResizeCube
 from ..cubes.chain import _generate_channels
-from ..cubes._utils import _unsupported_by_this_cube, _process_partial_seq
-from ..layers.pad import pad_like
+from ..cubes._utils import _unsupported_by_this_cube, _process_partial_seq, PartialIgnore
+from ..layers.pad import pad_to_channels_like
 
 class UNet(torch.nn.Module):
     def __init__(
         self,
-        in_channels,
-        out_channels,
-        ndim,
-        straight: Any = ConvCube.partial(3, act='relu', norm='bn', dropout=0.5, order='NADC'),
-        downsample: Any = ConvCube.partial(3, resample='stride'),
+        in_channels: int,
+        out_channels: int,
+        ndim: int,
+        straight: Any = ConvCube.partial(3, act="relu", norm="bn"),
+        downsample: Any = MaxPoolCube.partial(),
         upsample: Any = ConvTransposeStrideCube.partial(),
-        first: Any = ConvCube.partial(3),
         head: Any = ConvCube.partial(1),
-        blocks_per_level = 2,
-        middle_blocks = 3,
-        encoder_channels = (32, 64, 96, 128),
-        decoder_channels = (192, 128, 96, 64),
-        skip: Literal['cat', 'sum'] = 'cat',
+        encoder_blocks: int | Sequence[int] = 2,
+        decoder_blocks: int | Sequence[int] = 2,
+        encoder_channels: Sequence[int] = (64, 128, 256, 512, 1024),
+        decoder_channels: Sequence[int]  = (512, 256, 128, 64),
+        skip: Literal["cat", "sum"] = "cat",
+        decoder_channels_module: Literal["upsample", "straight"] = 'upsample',
+        straight1_override: Any = None,
+        first_override: Any = None,
         scale = _unsupported_by_this_cube,
     ):
-        """Use `norm/act/dropout -> conv` in blocks.
-
-        UNet:
-            first: conv
-            downblock: [norm -> act -> dropout -> conv -> `downsample`] per `encoder_channels`
-            middle: [norm -> act -> dropout -> conv] per `middle_blocks`
-            upblock: [`upsample` -> norm -> act -> dropout -> conv] per `decoder_channels`
-            head: conv
-
-        Or with normal ordering:
-        UNet:
-            first: conv -> act -> norm -> dropout
-            downlock: [conv -> act -> norm -> dropout -> `downsample`] per `encoder_channels`
-            middle: [conv -> act -> norm -> dropout] per `middle_blocks`
-            uplock: [`upsample` -> conv -> act -> norm -> dropout] per `decoder_channels`
-            head: conv
-
+        """U-Net (https://arxiv.org/pdf/1505.04597). Default arguments should create the same model as described in the paper.
 
         Args:
-            in_channels (_type_): _description_
-            out_channels (_type_): _description_
-            ndim (_type_): _description_
-            straight (Any, optional): _description_. Defaults to SingleConv.
-            downsample (Any, optional): _description_. Defaults to UNetDown.
-            upsample (Any, optional): _description_. Defaults to NiNBlock.
-            first (Any, optional): _description_. Defaults to UNetUp.
-            head (Any, optional): _description_. Defaults to LastConvBlock.
-            encoder_channels (tuple, optional): _description_. Defaults to (32, 64, 128, 192).
-            decoder_channels (tuple, optional): _description_. Defaults to (256, 192, 128, 64).
-            scale (_type_, optional): _description_. Defaults to _unsupported_by_this_cube.
+            in_channels (int): Input channels.
+            out_channels (int): Output channels.
+            ndim (int): Number of dimensions.
+            straight (Any, optional): Straight cube, may change number of channels. Defaults to ConvCube.partial(3, act="relu", norm="bn").
+            downsample (Any, optional): Downsample cube. Defaults to MaxPoolCube.partial().
+            upsample (Any, optional): Upsample cube. Defaults to ConvTransposeStrideCube.partial().
+            head (Any, optional): Head cube. Defaults to ConvCube.partial(1).
+            encoder_blocks (int | Sequence[int], optional): Number of blocks per encoder level. Defaults to 2.
+            decoder_blocks (int | Sequence[int], optional): Number of blocks per decoder level. Defaults to 2.
+            encoder_channels (Sequence[int], optional): Number of output channels of each encoder level. Defaults to (64, 128, 256, 512, 1024).
+            decoder_channels (Sequence[int], optional): Number of output channels of each decoder level. Defaults to (512, 256, 128, 64).
+            skip: "cat" for channel concatenation, "sum" for summation like in SegResNet. Defaults to "cat".
+            decoder_channels_module: Which module changes number of channels.
+            In original U-Net upsampling is done via transposed conv which also reduces number of channels.
+            If you use something like billinear upsampling, that can't change number of channels, so you can set this to `straight`.
+            Defaults to 'upsample'.
+            straight1_override (Any, optional): Override for first straight cube in each encoder level. Defaults to None.
+            first_override (Any, optional): Override for the first cube of the network. Defaults to None.
+            scale (_type_, optional): Only use if you are using this U-Net as a cube. Defaults to _unsupported_by_this_cube.
 
         Raises:
+            ValueError: _description_
+            ValueError: _description_
             ValueError: _description_
         """
         super().__init__()
 
+        # ------------------------------- process args ------------------------------- #
         self.skip = skip
-
         if straight is not None: straight = _process_partial_seq(straight)
         downsample = _process_partial_seq(downsample)
         upsample = _process_partial_seq(upsample)
-        if first is not None: first = _process_partial_seq(first)
+        if first_override is not None: first_override = _process_partial_seq(first_override)
         if head is not None: head = _process_partial_seq(head)
+        if straight1_override is None: straight1_override = straight
+        if first_override is None: first_override = straight
 
-        if len(encoder_channels) != len(decoder_channels):
-            raise ValueError(f"encoder_channels and decoder_channels must have the same length, {encoder_channels = }, {decoder_channels = }")
+        if isinstance(encoder_blocks, int): encoder_blocks = [encoder_blocks] * len(encoder_channels)
+        if isinstance(decoder_blocks, int): decoder_blocks = [decoder_blocks] * len(decoder_channels)
 
-        if first is not None: self.first = first(in_channels=in_channels, out_channels=encoder_channels[0], ndim=ndim, scale=None)
-        else: self.first = None
+        # ------------------------------- validate args ------------------------------ #
+        if len(encoder_channels) - 1 != len(decoder_channels):
+            raise ValueError(f"encoder_channels must be one longer than decoder_channels, {encoder_channels = }, {decoder_channels = }")
+        if len(encoder_blocks) != len(encoder_channels):
+            raise ValueError(f"encoder_blocks must have the same length as encoder_channels, {encoder_channels = }, {encoder_blocks = }")
+        if len(decoder_blocks) != len(decoder_channels):
+            raise ValueError(f"decoder_channels must have the same length as decoder_blocks, {decoder_channels = }, {decoder_blocks = }")
 
-        if straight is not None:
-            down_block = StraightAndResizeCube.partial(
-                straight_cube=straight,
-                resize_cube=downsample,
-                straight_num=blocks_per_level,
-                channel_mode="in",
-                only_straight_channels=False,
-            )
-        else:
-            down_block = downsample
+        # ----------------------------- construct encoder ---------------------------- #
+        # last block doesn't have a downsample and doesnt change number of channels
+        encoder_channels = [in_channels] + list(encoder_channels) + [encoder_channels[-1]]
 
-        self.down = torch.nn.ModuleList(
-            [
-                down_block(
-                    in_channels=encoder_channels[i],
-                    out_channels=encoder_channels[i + 1],
-                    ndim=ndim,
-                    scale=0.5,
-                )
-                for i in range(len(encoder_channels) - 1)
-            ]
-        )
+        self.encoder = torch.nn.ModuleList()
+        for leveli in range(len(encoder_blocks)):
+            block = torch.nn.ModuleDict()
 
-        if middle_blocks > 0:
-            self.middle = ChainCube(
-                in_channels=encoder_channels[-1],
-                out_channels=decoder_channels[0],
-                ndim = 2,
-                cube=straight,
-                num=middle_blocks,
-                channel_mode='in'
-            )
-        else: 
-            if encoder_channels[-1] != decoder_channels[0]: 
-                raise ValueError(f"{middle_blocks = }, while ({encoder_channels[-1] = }) != ({decoder_channels[0] = })")
-            self.middle = None
+            # create straight block
+            block['straight'] = torch.nn.Sequential()
+            for i in range(encoder_blocks[leveli]):
+                # first block changes number of channels, and we set new number to `downsample_in_channels`
+                if i == 0:
+                    # on first level, if there is `first` block, use it instead
+                    if leveli == 0:
+                        block['straight'].append(first_override(in_channels=encoder_channels[leveli], out_channels=encoder_channels[leveli + 1], ndim=ndim, scale=None))
+                    else:
+                        block['straight'].append(straight1_override(in_channels=encoder_channels[leveli], out_channels=encoder_channels[leveli + 1], ndim=ndim, scale=None))
+                # next blocks don't change number of channels
+                else:
+                    block['straight'].append(straight(in_channels=encoder_channels[leveli + 1], out_channels=None, ndim=ndim, scale=None))
 
-        if straight is not None:
-            up_block = StraightAndResizeCube.partial(
-                straight_cube=straight,
-                resize_cube=upsample,
-                straight_num=blocks_per_level,
-                channel_mode="out",
-                only_straight_channels=False,
-                order = "RS",
-            )
-        else: up_block = upsample
+            # we don't downsample on last block
+            if leveli == len(encoder_blocks) - 1: block['downsample'] = torch.nn.Identity()
+            # if not last, create downsample block
+            else: block['downsample'] = downsample(in_channels=encoder_channels[leveli + 1], out_channels=None, ndim=ndim, scale=1/2)
 
-        self.up = torch.nn.ModuleList(
-            [
-                up_block(
-                    in_channels = encoder_channels[-i] * int(self.skip == "cat") + decoder_channels[i - 1],
-                    out_channels = decoder_channels[i],
-                    ndim = ndim,
-                    scale = 2,
-                )
-                for i in range(1, len(decoder_channels))
-            ]
-        )
+            self.encoder.append(block)
 
-        self.head = head(
-            in_channels = decoder_channels[-1] + ((encoder_channels[0] * int(self.first is not None) + in_channels) * int(self.skip == "cat")),
-            out_channels = out_channels,
-            ndim = ndim,
-            scale = None,
-        )
+        # restore original encoder_channels
+        encoder_channels = encoder_channels[1:-1]
 
-    def forward(self, x: torch.Tensor):
-        x0 = x
-        if self.first is not None: x1 = x = self.first(x)
-        else: x1 = None
+        # ----------------------------- construct decoder ---------------------------- #
+        # first decoder block takes in signal with last encoder channels
+        decoder_channels = [encoder_channels[-1]] + list(decoder_channels)
 
+        self.decoder = torch.nn.ModuleList()
+        for leveli in range(len(decoder_blocks)):
+            block = torch.nn.ModuleDict()
+
+            # determine whether upsample sets channels
+            if decoder_channels_module == 'straight':
+                upsample_out = None
+                straight_in = decoder_channels[leveli]
+            else:
+                upsample_out = decoder_channels[leveli + 1]
+                straight_in = upsample_out
+            block['upsample'] = upsample(in_channels=decoder_channels[leveli], out_channels=upsample_out, ndim=ndim, scale=2)
+
+            in_channels_after_skip = straight_in + encoder_channels[- leveli - 2] * (int(skip == 'cat'))
+            straight_out = decoder_channels[leveli + 1]
+
+            # create straight block
+            block['straight'] = torch.nn.Sequential()
+            for i in range(decoder_blocks[leveli]):
+                # use straight block as head if straight is None
+                if i == decoder_blocks[leveli] - 1 and leveli == len(decoder_blocks) - 1 and head is None:
+                    in_ch = in_channels_after_skip if i == 0 else straight_in
+                    block['straight'].append(straight1_override(in_channels=in_ch, out_channels=out_channels, ndim=ndim, scale=None))
+
+                # first block changes number of channels, and we set new number to `downsample_in_channels`
+                elif i == 0:
+                    block['straight'].append(straight1_override(in_channels=in_channels_after_skip, out_channels=straight_out, ndim=ndim, scale=None))
+
+                # next blocks don't change number of channels
+                else:
+                    block['straight'].append(straight(in_channels=straight_out, out_channels=None, ndim=ndim, scale=None))
+
+            self.decoder.append(block)
+
+        # head creates appropriate number of out channels
+        if head is not None: self.head = head(in_channels=decoder_channels[-1], out_channels=out_channels, ndim=ndim, scale=None)
+        else: self.head = torch.nn.Identity()
+
+
+    def forward(self, x:torch.Tensor):
         each = []
-        for mod in self.down:
-            x = mod(x)
+
+        for mod in self.encoder:
+            x = mod['straight'](x) # type:ignore
             each.append(x)
+            x = mod['downsample'](x) # type:ignore
 
-        if self.middle is not None: x = self.middle(x)
+        each.pop()
 
-        for mod, y in zip(self.up, reversed(each)):
-            if self.skip == 'cat': x = mod(torch.cat([x, y], dim=1))
-            else: x = mod(x + pad_like(y, target=x, where='start', value=0))
+        for mod in self.decoder:
+            x = mod['upsample'](x) # type:ignore
+            if self.skip == 'cat': x = torch.cat([x, each.pop()], dim=1)
+            else: x = x + pad_to_channels_like(each.pop(), x, 'start')
+            x = mod['straight'](x) # type:ignore
 
-        if self.skip == 'cat':
-            if x1 is not None: return self.head(torch.cat([x, x1, x0], dim=1))
-            return self.head(torch.cat([x, x0], dim=1))
-
-        if x1 is not None: return self.head(x + pad_like(x1, x, 'start') + pad_like(x0, x, 'end'))
-        return self.head(x + pad_like(x0, x, 'start'))
+        return self.head(x)

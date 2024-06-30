@@ -25,3 +25,14 @@ def _snap_int(i:int, snap:int):
     diff = i % snap
     if diff < snap / 2: return int(i - diff)
     else: return int(i + (snap - diff))
+    
+    
+class PartialIgnore: pass
+def _ignore_PartialIgnores(kwargs:dict):
+    return {k:v for k,v in kwargs.items() if not isinstance(v, PartialIgnore)}
+
+def _get_partial_from_locals(cls, locals_copy:dict):
+    locals_copy.pop('cls', None)
+    locals_copy.pop('self', None)
+    locals_copy.pop('__class__', None)
+    return functools.partial(cls, **_ignore_PartialIgnores(locals_copy))

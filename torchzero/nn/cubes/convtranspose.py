@@ -5,6 +5,8 @@ import functools
 import torch
 from ..layers.conv import ConvTransposeBlock
 from .._library.pool import create_pool
+from ._utils import _get_partial_from_locals
+
 
 __all__ = [
     "ConvTransposeStrideCube",
@@ -158,6 +160,4 @@ class _ConvTransposeCube(ConvTransposeBlock):
         ):
 
         kwargs = locals().copy()
-        kwargs.pop('cls')
-
-        return functools.partial(cls, **kwargs)
+        return _get_partial_from_locals(cls, kwargs)
