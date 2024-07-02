@@ -97,8 +97,7 @@ class ConvCube(ConvBlock):
 
         kwargs.pop('scale')
         kwargs.pop('resample')
-
-
+        
         super().__init__(**kwargs)
 
     @classmethod

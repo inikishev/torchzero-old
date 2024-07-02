@@ -8,7 +8,7 @@ import torch
 
 from ..layers.func import ensure_module
 from ..layers.pad import pad_like
-from ._utils import _process_partial_seq, _unsupported_by_this_cube
+from ._utils import partial_seq, unsupported_by_this_cube
 
 __all__ = [
     'ResidualCube',
@@ -27,8 +27,8 @@ class ResidualCube(torch.nn.Module):
             resample (_type_, optional): Cube that will resample input to the same size as main cube. Defaults to None.
         """
         super().__init__()
-        self.cube = _process_partial_seq(cube)(in_channels=in_channels, out_channels=out_channels, scale=scale, ndim = ndim)
-        if resample is not None: self.resample = _process_partial_seq(resample)(in_channels=in_channels, out_channels=out_channels, scale=scale, ndim = ndim)
+        self.cube = partial_seq(cube)(in_channels=in_channels, out_channels=out_channels, scale=scale, ndim = ndim)
+        if resample is not None: self.resample = partial_seq(resample)(in_channels=in_channels, out_channels=out_channels, scale=scale, ndim = ndim)
         else: self.resample = None
 
     def forward(self, x):

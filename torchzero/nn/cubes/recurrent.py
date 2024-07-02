@@ -8,14 +8,14 @@ import torch
 
 from ..layers.func import ensure_module
 from ..layers.pad import pad_like
-from ._utils import _process_partial_seq, _unsupported_by_this_cube
+from ._utils import partial_seq, unsupported_by_this_cube
 
 __all__ = [
     'RecurrentCube',
 ]
 
 class RecurrentCube(torch.nn.Module):
-    def __init__(self, cube, in_channels:int, times:int, ndim = 2, scale = None, out_channels = _unsupported_by_this_cube):
+    def __init__(self, cube, in_channels:int, times:int, ndim = 2, scale = None, out_channels = unsupported_by_this_cube):
         """_summary_
 
         Args:
@@ -28,7 +28,7 @@ class RecurrentCube(torch.nn.Module):
         """
         super().__init__()
         self.times = times
-        self.cube = _process_partial_seq(cube)(in_channels=in_channels, out_channels=out_channels, scale=scale, ndim = ndim)
+        self.cube = partial_seq(cube)(in_channels=in_channels, out_channels=out_channels, scale=scale, ndim = ndim)
 
     def forward(self, x):
         for _ in range(self.times):

@@ -5,7 +5,7 @@ import functools
 import torch
 from ..layers.conv import ConvBlock
 from .._library.pool import create_pool, get_maxpoolnd
-from ._utils import _unsupported_by_this_cube
+from ._utils import unsupported_by_this_cube
 
 __all__ = [
     "MaxPoolCube",
@@ -23,8 +23,8 @@ class MaxPoolCube(torch.nn.Module):
         # return_indices: bool = False,
         ceil_mode: bool = False,
 
-        in_channels = _unsupported_by_this_cube,
-        out_channels = _unsupported_by_this_cube,
+        in_channels = unsupported_by_this_cube,
+        out_channels = unsupported_by_this_cube,
     ):
         super().__init__()
         if out_channels is not None and out_channels != in_channels:

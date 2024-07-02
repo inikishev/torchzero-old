@@ -59,19 +59,9 @@ def Convnd(
     Returns:
         _type_: _description_
     """
-    return get_convnd(ndim)(
-        in_channels = in_channels,
-        out_channels = out_channels,
-        kernel_size = kernel_size,
-        stride = stride,
-        padding = padding,
-        dilation = dilation,
-        groups = groups,
-        bias = bias,
-        padding_mode = padding_mode,
-        device = device,
-        dtype = dtype,
-    )
+    kwargs = locals().copy()
+    kwargs.pop('ndim')
+    return get_convnd(ndim)(**kwargs)
 
 def ConvTransposend(
     in_channels: int,
@@ -88,20 +78,10 @@ def ConvTransposend(
     dtype=None,
     ndim=2,
 ):
-    return get_convtransposednd(ndim)(
-        in_channels = in_channels,
-        out_channels = out_channels,
-        kernel_size = kernel_size,
-        stride = stride,
-        padding = padding,
-        output_padding = output_padding,
-        groups = groups,
-        bias = bias,
-        dilation = dilation,
-        padding_mode = padding_mode,
-        device = device,
-        dtype = dtype,
-    )
+    kwargs = locals().copy()
+    kwargs.pop('ndim')
+    return get_convtransposednd(ndim)(**kwargs)
+
 
 def LazyConvnd(
     out_channels: int,
@@ -117,19 +97,12 @@ def LazyConvnd(
     ndim=2,
     in_channels = None,
 ):
-    return get_lazyconvnd(ndim)(
-        out_channels = out_channels,
-        kernel_size = kernel_size,
-        stride = stride,
-        padding = padding,
-        dilation = dilation,
-        groups = groups,
-        bias = bias,
-        padding_mode = padding_mode,
-        device = device,
-        dtype = dtype,
-    )
-    
+    kwargs = locals().copy()
+    kwargs.pop('in_channels')
+    kwargs.pop('ndim')
+    return get_lazyconvnd(ndim)(**kwargs)
+
+
 def LazyConvTransposend(
     out_channels: int,
     kernel_size: int | tuple,
@@ -145,16 +118,7 @@ def LazyConvTransposend(
     ndim=2,
     in_channels = None,
 ):
-    return get_lazyconvtransposend(ndim)(
-        out_channels = out_channels,
-        kernel_size = kernel_size,
-        stride = stride,
-        padding = padding,
-        output_padding = output_padding,
-        groups = groups,
-        bias = bias,
-        dilation = dilation,
-        padding_mode = padding_mode,
-        device = device,
-        dtype = dtype,
-    )
+    kwargs = locals().copy()
+    kwargs.pop('in_channels')
+    kwargs.pop('ndim')
+    return get_lazyconvtransposend(ndim)(**kwargs)

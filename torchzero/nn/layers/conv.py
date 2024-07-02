@@ -112,6 +112,7 @@ class ConvBlock(torch.nn.Module):
                 groups=groups,
                 bias=bias, # type:ignore
                 device=device,
+                ndim = ndim,
             )
 
         self.layers = _create_module_order(
@@ -208,6 +209,7 @@ class ConvTransposeBlock(torch.nn.Module):
             bias=bias, # type:ignore
             dilation=dilation,
             device=device,
+            ndim = ndim,
         )
 
         self.layers = _create_module_order(
