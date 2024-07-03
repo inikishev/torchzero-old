@@ -11,7 +11,7 @@ __all__ = [
     'LinearBlock',
 ]
 
-class LinearBlock(torch.nn.Module):
+class LinearBlock(torch.nn.Sequential):
     def __init__(self,
         in_features: Optional[int],
         out_features: int,
@@ -20,8 +20,6 @@ class LinearBlock(torch.nn.Module):
         dropout: Optional[float | torch.nn.Module | Callable] = None,
         act: Optional[torch.nn.Module | Callable] = None,
         flatten: bool | Sequence[int] = False,
-        residual = False,
-        recurrent = 1,
         custom_op = None,
         order = 'FLAND'
         ):
@@ -39,13 +37,12 @@ class LinearBlock(torch.nn.Module):
             custom_op (_type_, optional): _description_. Defaults to None.
             order (str, optional): _description_. Defaults to 'fland'.
         """
-        super().__init__()
         # linear
         if in_features is None: self.linear = torch.nn.LazyLinear(out_features, bias)
         elif custom_op is None: self.linear = torch.nn.Linear(in_features, out_features, bias) # type:ignore
         else: self.linear = custom_op(in_features, out_features, bias) # type:ignore
 
-        self.layers = _create_module_order(
+        layers = _create_module_order(
             modules = dict(L=self.linear, A=act, N=norm, D=dropout, F=flatten),
             order = order,
             main_module='L',
@@ -55,11 +52,5 @@ class LinearBlock(torch.nn.Module):
             spatial_size = None,
             )
 
-        self.residual = residual
-        self.recurrent = recurrent
 
-    def forward(self, x:torch.Tensor):
-        for _ in range(self.recurrent):
-            if self.residual: x = x + pad_like(self.layers(x), x)
-            else: x = self.layers(x)
-        return x
+        super().__init__(*layers)

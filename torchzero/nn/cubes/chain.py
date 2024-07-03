@@ -13,6 +13,7 @@ from ._utils import partial_seq, _snap_int, _get_partial_from_locals, CubePartia
 __all__ = [
     'ChainCube',
     'StraightAndResizeCube',
+    "SequenceCube",
 ]
 
 def _generate_channels(in_channels, out_channels, mode, num, snap) -> list[int]:
@@ -40,7 +41,7 @@ def _generate_channels(in_channels, out_channels, mode, num, snap) -> list[int]:
     if snap is not None: channels = [channels[0]] + [_snap_int(i, snap) for i in channels[1:-1]] + [channels[-1]]
     return channels
 
-class ChainCube(torch.nn.Module):
+class ChainCube(torch.nn.Sequential):
     def __init__(self,
         cube,
         num:int,
@@ -50,13 +51,7 @@ class ChainCube(torch.nn.Module):
         ndim = 2,
         channel_mode: Literal['in', 'out', 'min', 'max', 'mean', 'gradual'] | Sequence[int] | int = 'gradual',
         scale_cubes: Literal['first', 'last', 'all'] | Sequence[int] | int = 'all',
-        residual = False,
-        recurrent = 1,
-        return_each = False,
         snap_channels:Optional[int] = None,
-        cat_channels: Optional[Sequence[int]] = None,
-        cat_idxs: slice = slice(None, None, None),
-        cat_dropout = None,
         overrides: Optional[Mapping[int | slice, CubePartial]] = None,
     ):
         """Chains cubes.
@@ -77,7 +72,6 @@ class ChainCube(torch.nn.Module):
             ValueError: _description_
             ValueError: _description_
         """
-        super().__init__()
         cube = partial_seq(cube)
         cubes = [cube for _ in range(num)]
 
@@ -98,22 +92,13 @@ class ChainCube(torch.nn.Module):
         elif isinstance(scale_cubes, Sequence): scales = scale_cubes
         else: raise ValueError(f"Invalid scale_cubes: {scale_cubes}")
 
-        if cat_channels is not None:
-            self.cat_channel_idxs = list(range(num))[cat_idxs]
-            if len(cat_channels) != len(self.cat_channel_idxs):
-                raise ValueError(f"`cat_channels` must be same length as `num` sliced by `cat_idxs`: len({cat_channels = }) != len({self.cat_channel_idxs = })")
-            cat_channels_iter = iter(cat_channels)
 
-        self.blocks = torch.nn.Sequential()
+        blocks = []
         for i, cube_ in enumerate(cubes):
-            if cat_channels is not None and i in self.cat_channel_idxs: # type:ignore
-                cat_in_channels = next(cat_channels_iter) # type:ignore
-            else: cat_in_channels = 0
-
-            self.blocks.append(
+            blocks.append(
                 ensure_module(
                     cube_(
-                        in_channels=self.channels[i] + cat_in_channels,
+                        in_channels=self.channels[i],
                         out_channels=self.channels[i + 1],
                         scale=scales[i],
                         ndim=ndim,
@@ -121,32 +106,8 @@ class ChainCube(torch.nn.Module):
                 )
             )
 
-        self.residual = residual
-        self.recurrent = recurrent
-        self.return_each = return_each
-        self.cat_dropout = cat_dropout
+        super().__init__(*blocks)
 
-    def forward(self, x, cat_levels:Optional[Sequence[torch.Tensor]] = None):
-
-        for _ in range(self.recurrent):
-            each = []
-            if self.residual: inputs = x
-            if cat_levels is not None:
-                if len(cat_levels) != len(self.cat_channel_idxs):
-                    raise ValueError(f"`cat_levels` must be same length as `num` sliced by `cat_idxs`: {len(cat_levels) = } != len({self.cat_channel_idxs = })")
-                cat_levels_iter = iter(cat_levels)
-            for level, block in enumerate(self.blocks):
-                if cat_levels is not None:
-                    if level in self.cat_channel_idxs:
-                        cat_level = next(cat_levels_iter) # type:ignore
-                        if self.training and self.cat_dropout is not None and torch.rand() < self.cat_dropout:
-                            cat_level = torch.zeros_like(cat_levels[level])
-                        x = torch.cat([x, cat_level], dim=1) # type:ignore
-                x = block(x)
-                if self.return_each: each.append(x)
-            if self.residual: x += inputs # type:ignore
-        if self.return_each: return x, each # type:ignore
-        return x
 
 
     @classmethod
@@ -155,13 +116,7 @@ class ChainCube(torch.nn.Module):
         num: int,
         channel_mode: Literal['in', 'out', 'min', 'max', 'mean', 'gradual'] | Sequence[int] = 'gradual',
         scale_cubes: Literal['first', 'last', 'all'] | Sequence[int] = 'all',
-        residual = False,
-        recurrent = 1,
-        return_each = False,
         snap_channels:Optional[int] = None,
-        cat_channels: Optional[Sequence[int]] = None,
-        cat_idxs: slice = slice(None, None, None),
-        cat_dropout = None,
         overrides: Optional[Mapping[int | slice, CubePartial]] = None,
         ):
         kwargs = locals().copy()
@@ -169,7 +124,7 @@ class ChainCube(torch.nn.Module):
 
 
 
-class StraightAndResizeCube(torch.nn.Module):
+class StraightAndResizeCube(torch.nn.Sequential):
     def __init__(self,
         straight_cube,
         resize_cube,
@@ -221,25 +176,24 @@ class StraightAndResizeCube(torch.nn.Module):
 
         self.channels = _generate_channels(in_channels, out_channels, mode=channel_mode, num=num, snap=snap_channels)
 
-        self.blocks = torch.nn.Sequential()
+        blocks = []
         if order == 'SR':
                 for i, straight_cube_ in enumerate(straight_cubes):
-                    self.blocks.append(ensure_module(straight_cube_(in_channels = self.channels[i], out_channels = self.channels[i+1], scale=None, ndim=ndim)))
+                    blocks.append(ensure_module(straight_cube_(in_channels = self.channels[i], out_channels = self.channels[i+1], scale=None, ndim=ndim)))
                 if only_straight_channels:
-                    self.blocks.append(ensure_module(resize_cube(in_channels = self.channels[-1], out_channels = None, scale=scale, ndim=ndim)))
+                    blocks.append(ensure_module(resize_cube(in_channels = self.channels[-1], out_channels = None, scale=scale, ndim=ndim)))
                 else:
-                    self.blocks.append(ensure_module(resize_cube(in_channels = self.channels[-2], out_channels = self.channels[-1], scale=scale, ndim=ndim)))
+                    blocks.append(ensure_module(resize_cube(in_channels = self.channels[-2], out_channels = self.channels[-1], scale=scale, ndim=ndim)))
         elif order == 'RS':
             if only_straight_channels:
-                self.blocks.append(ensure_module(resize_cube(in_channels = self.channels[0], out_channels = None, scale=scale, ndim=ndim)))
+                blocks.append(ensure_module(resize_cube(in_channels = self.channels[0], out_channels = None, scale=scale, ndim=ndim)))
             else:
-                self.blocks.append(ensure_module(resize_cube(in_channels = self.channels[0], out_channels = self.channels[1], scale=scale, ndim=ndim)))
+                blocks.append(ensure_module(resize_cube(in_channels = self.channels[0], out_channels = self.channels[1], scale=scale, ndim=ndim)))
             for i, straight_cube_ in enumerate(straight_cubes):
                 index = i + int(not only_straight_channels)
-                self.blocks.append(ensure_module(straight_cube_(in_channels = self.channels[index], out_channels = self.channels[index+1], scale=None, ndim=ndim)))
+                blocks.append(ensure_module(straight_cube_(in_channels = self.channels[index], out_channels = self.channels[index+1], scale=None, ndim=ndim)))
 
-
-    def forward(self, x): return self.blocks(x)
+        super().__init__(*blocks)
 
     @classmethod
     def partial(cls, # type:ignore
@@ -255,7 +209,7 @@ class StraightAndResizeCube(torch.nn.Module):
         kwargs = locals().copy()
         return _get_partial_from_locals(cls, kwargs)
 
-class SequenceCube(torch.nn.Module):
+class SequenceCube(torch.nn.Sequential):
     def __init__(self,
                  cubes:Sequence[CubePartial],
                  in_channels: int,
@@ -278,7 +232,7 @@ class SequenceCube(torch.nn.Module):
         Raises:
             ValueError: _description_
         """
-        super().__init__()
+
         if isinstance(mid_channels, int) or mid_channels is None: mid_channels = [mid_channels for _ in range(len(cubes) - 1)]
         channels = [in_channels] + list(mid_channels) + [out_channels]
         if len(channels) != len(cubes) + 1: raise ValueError(f'{channels = } while {len(cubes) = }')
@@ -287,14 +241,14 @@ class SequenceCube(torch.nn.Module):
         if scale_idx is None and scale is not None: raise ValueError("passed scale to SequenceCube but scale_idx is None")
         if scale_idx is not None: scales[scale_idx] = scale
 
-        self.cubes = torch.nn.Sequential(*[ensure_module(partial_seq(cube)(
+        cubes = [ensure_module(partial_seq(cube)(
             in_channels=channels[i],
             out_channels=channels[i+1],
             scale=scales[i],
             ndim=ndim,
-            )) for i, cube in enumerate(cubes)])
+            )) for i, cube in enumerate(cubes)]
 
-    def forward(self, x:torch.Tensor): return self.cubes(x)
+        super().__init__(*cubes)
 
 
     @classmethod

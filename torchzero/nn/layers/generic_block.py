@@ -64,17 +64,14 @@ class GenericBlock(torch.nn.Module):
         dropout: Optional[float | torch.nn.Module | Callable] = None,
         act: Optional[torch.nn.Module | Callable] = None,
         pool: Optional[int | torch.nn.Module | Callable] = None,
-        residual = False,
-        recurrent = 1,
         ndim = 2,
         order = "MPAND",
         spatial_size: Optional[Sequence[int]] = None,
     ):
-        super().__init__()
         if callable(module): self.module = module
         else: self.module = seq(module)
 
-        self.layers = _create_module_order(
+        layers = _create_module_order(
             modules = dict(M=self.module, P=pool, A=act, N=norm, D=dropout),
             order = order,
             main_module='M',
@@ -84,11 +81,4 @@ class GenericBlock(torch.nn.Module):
             spatial_size = spatial_size,
             )
 
-        self.residual = residual
-        self.recurrent = recurrent
-
-    def forward(self, x:torch.Tensor):
-        for _ in range(self.recurrent):
-            if self.residual: x = x + pad_like(self.layers(x), x)
-            else: x = self.layers(x)
-        return x
+        super().__init__(*layers)

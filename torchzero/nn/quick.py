@@ -1,6 +1,11 @@
 from collections.abc import Sequence
 import torch
 from .layers.func import ensure_module
+
+__all__ = [
+    'seq',
+    ]
+
 def seq(layers, *args):
     """Shortcut for torch.nn.Sequential that also converts non module callables into modules."""
     modules = []

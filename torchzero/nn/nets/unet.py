@@ -2,7 +2,8 @@ from typing import Any, Literal, Optional
 from collections.abc import Sequence, Mapping
 import torch
 from ..cubes.conv import ConvCube
-from ..cubes.convtranspose import ConvTransposeStrideCube
+from ..cubes.residual import ResidualCube
+from ..cubes.convtranspose import ConvTranspose2StrideCube, ConvTranspose3StrideCube
 from ..cubes.maxpool import MaxPoolCube
 from ..cubes.chain import ChainCube, StraightAndResizeCube, SequenceCube, _generate_channels
 from ..cubes.skip import SkipCube, SkipLiteral
@@ -20,7 +21,7 @@ class BasicUNet(torch.nn.Module):
         ndim: int,
         first: Optional[CubePartial] = ConvCube.partial(3, 'relu', 'bn'),
         down: CubePartial = ConvCube.partial(3, 'relu', 'bn'),
-        up: CubePartial = ConvTransposeStrideCube.partial('relu', 'bn'),
+        up: CubePartial = ConvTranspose2StrideCube.partial('relu', 'bn'),
         head: Optional[CubePartial] = ConvCube.partial(1),
         encoder_channels=(32, 64, 128, 256),
         decoder_channels=(192, 96, 48),
@@ -62,7 +63,7 @@ class BasicUNet(torch.nn.Module):
         self.level1_skip_input = level1_skip_input
 
         # ------------------------------ create modules ------------------------------ #
-        if first is not None: self.first = first(in_channels, encoder_channels[0], ndim=ndim, scale=None) # type:ignore
+        if first is not None: self.first = first(in_channels = in_channels, out_channels = encoder_channels[0], ndim=ndim, scale=None) # type:ignore
         else: self.first = torch.nn.Identity()
         self.encoder = torch.nn.ModuleList([cube(in_channels=encoder_channels[i], out_channels=encoder_channels[i+1], ndim=ndim, scale = 0.5) for i, cube in enumerate(encoder_cubes)])
 
@@ -116,7 +117,7 @@ class UNet(BasicUNet):
         ndim: int,
         straight: CubePartial = ConvCube.partial(3, act="relu", norm="bn"),
         downsample: CubePartial = MaxPoolCube.partial(),
-        upsample: CubePartial = ConvTransposeStrideCube.partial(),
+        upsample: CubePartial = ConvTranspose2StrideCube.partial(),
         head: Optional[CubePartial] = ConvCube.partial(1),
         encoder_blocks: int | Sequence[int] = 2,
         decoder_blocks: int | Sequence[int] = 2,
@@ -127,16 +128,21 @@ class UNet(BasicUNet):
         skip_dropout = None,
         skip_orig_dropout = None,
         skip_swap_p = None,
+        encoder_channels_module: Literal["downsample", "straight"] = 'straight',
         decoder_channels_module: Literal["upsample", "straight"] = 'upsample',
-        straight1_override: Optional[CubePartial] = None,
+        decoder_straight1_override: Optional[CubePartial] = None,
         first_override: Optional[CubePartial] = None,
         scale = unsupported_by_this_cube,
     ):
         # ------------------------------- process args ------------------------------- #
-        if isinstance(encoder_blocks, int): encoder_blocks = [encoder_blocks for _ in  range(len(encoder_channels) - 1)]
+        if isinstance(encoder_blocks, int): encoder_blocks = [encoder_blocks for _ in  range(len(encoder_channels))]
         if isinstance(decoder_blocks, int): decoder_blocks = [decoder_blocks for _ in  range(len(decoder_channels))]
         straight = partial_seq(straight); downsample = partial_seq(downsample); upsample = partial_seq(upsample)
+        if decoder_channels_module == 'straight': raise NotImplementedError("straight not implemented for decoder yet")
+        if len(encoder_blocks) != len(encoder_channels): raise ValueError(f"encoder_blocks must have same length as encoder_channels - 1, {encoder_blocks = }, {encoder_channels = }")
+        if len(decoder_blocks) != len(decoder_channels): raise ValueError(f"decoder_blocks must have same length as decoder_channels, {decoder_blocks = }, {decoder_channels = }")
 
+        first_blocks, encoder_blocks = encoder_blocks[0], encoder_blocks[1:]
         # ------------------------------- create blocks ------------------------------ #
 
         encoder_cubes: Mapping[int | slice, CubePartial] = {i: StraightAndResizeCube.partial(
@@ -145,38 +151,108 @@ class UNet(BasicUNet):
             straight_num = num,
             channel_mode='out',
             order = 'RS',
-            straight_overrides = None if straight1_override is None else {-1: straight1_override},
+            only_straight_channels = (encoder_channels_module == 'straight'),
             ) for i, num in enumerate(encoder_blocks)}
 
-        decoder_cubes: Mapping[int | slice, CubePartial] = {i: (SequenceCube.partial(
-            cubes = [*[straight for _ in range(num)], upsample],
-            mid_channels = decoder_channels[i - 1],
-            scale_idx=-1,
-            ) if i > 0 else upsample) for i, num in enumerate(decoder_blocks[:-1], 1)}
-
+        decoder_cubes: dict[int | slice, CubePartial] = {}
         decoder_cubes[0] = upsample
+        for i, num in enumerate(decoder_blocks[:-1], 1):
+            cubes = [*[straight for _ in range(num)], upsample]
+            if len(cubes) > 1 and decoder_straight1_override is not None: cubes[0] = partial_seq(decoder_straight1_override)
+            decoder_cubes[i] = SequenceCube.partial(
+                cubes = cubes,
+                mid_channels = decoder_channels[i - 1] if decoder_channels_module == 'upsample' else (decoder_channels[i - 2] if i != 1 else encoder_channels[-1]),
+                scale_idx=-1,
+                )
 
         if head is None: head = straight
-        else: head = SequenceCube.partial(
-            cubes = [[straight for _ in range(decoder_blocks[-1])], head],
-            mid_channels = decoder_channels[-1])
+        else:
+            cubes = [*[straight for _ in range(decoder_blocks[-1])], head]
+            if len(cubes) > 1 and decoder_straight1_override is not None: cubes[0] = partial_seq(decoder_straight1_override)
+            head = SequenceCube.partial(
+                cubes = cubes,
+                mid_channels = decoder_channels[-1]
+                )
 
+        super().__init__(
+            in_channels=in_channels,
+            out_channels=out_channels,
+            ndim=ndim,
+            first = [straight for _ in range(first_blocks)]
+                if first_override is None
+                else [partial_seq(first_override) for _ in range(first_blocks)],
+            down=IdentityCube,
+            up=IdentityCube,
+            head=head,
+            encoder_channels=encoder_channels,
+            decoder_channels=decoder_channels,
+            skip_type=skip,
+            skip_cube=skip_cube,
+            skip_dropout=skip_dropout,
+            skip_orig_dropout=skip_orig_dropout,
+            skip_swap_p=skip_swap_p,
+            encoder_overrides=encoder_cubes,
+            decoder_overrides=decoder_cubes,
+            scale=scale,
+        )
+
+
+SegResBlock = ResidualCube.partial(
+    ChainCube.partial(
+        cube = ConvCube.partial(
+            kernel_size = 3,
+            act = "relu",
+            norm = "bn",
+            order="NADC",
+            bias=False
+        ),
+        num = 2,
+        channel_mode = 'max',
+    )
+)
+
+class SegResNet(UNet):
+    def __init__(self,
+        in_channels = 12,
+        out_channels = 5,
+        ndim = 2,
+        straight = SegResBlock,
+        downsample = ConvCube.partial(3, resample='stride', bias=False),
+        upsample = ConvTranspose3StrideCube.partial(bias = False),
+        head = ConvCube.partial(1),
+        first = ConvCube.partial(3, bias=False),
+        skip: SkipLiteral = 'sum',
+        skip_cube: CubePartial | None = None,
+        skip_dropout: Optional[float] = None,
+        skip_orig_dropout: Optional[float] | None = None,
+        skip_swap_p: Optional[float] | None = None,
+        encoder_channels_module: Literal['downsample', 'straight',] = 'downsample',
+        decoder_channels_module: Literal['upsample', 'straight',] = 'upsample',
+        encoder_channels = (32, 64, 128, 256),
+        decoder_channels = (128, 64, 32),
+        encoder_blocks = (1, 2, 2, 4),
+        decoder_blocks = 1,
+        scale = unsupported_by_this_cube,
+        ):
         super().__init__(
             in_channels = in_channels,
             out_channels = out_channels,
             ndim = ndim,
-            first = straight if first_override is None else partial_seq(first_override),
-            down = IdentityCube,
-            up = IdentityCube,
+            straight = straight,
+            downsample = downsample,
+            upsample = upsample,
             head = head,
-            encoder_channels = encoder_channels,
-            decoder_channels = decoder_channels,
-            skip_type = skip,
+            first_override = [first, SegResBlock, dict(c=0)],
+            skip = skip,
             skip_cube = skip_cube,
             skip_dropout = skip_dropout,
             skip_orig_dropout = skip_orig_dropout,
             skip_swap_p = skip_swap_p,
-            encoder_overrides = encoder_cubes,
-            decoder_overrides = decoder_cubes,
+            encoder_channels_module = encoder_channels_module,
+            decoder_channels_module = decoder_channels_module,
+            encoder_channels = encoder_channels,
+            decoder_channels = decoder_channels,
+            encoder_blocks = encoder_blocks,
+            decoder_blocks = decoder_blocks,
             scale = scale,
         )

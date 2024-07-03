@@ -11,6 +11,9 @@ from ..layers.func import ensure_module
 from ..layers.pad import pad_like, pad_to_channels_like
 from ._utils import partial_seq, unsupported_by_this_cube, _get_partial_from_locals, CubePartial
 
+__all__ = [
+    "SkipCube",
+]
 def _skip_cat(x, y): return torch.cat([x, y], dim=1)
 def _skip_cat_post_sum(x:torch.Tensor):
     split = int(x.size(1) / 2)

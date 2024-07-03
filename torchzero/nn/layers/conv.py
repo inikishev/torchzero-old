@@ -11,7 +11,7 @@ from .._library.dropout import create_dropout
 from .._library.pool import create_pool
 from .._library.activation import create_act
 from .._library.upsample import create_upsample
-from ..layers.pad import pad_to_shape, pad_like
+from ..layers.pad import pad_to_shape, pad_to_channels_like
 from ..layers.crop import SpatialReduceCrop
 
 __all__ = [
@@ -36,7 +36,7 @@ def _act_is_first(order:str, main_char:str):
         if char == 'A': return True
         elif char == main_char: return False
 
-class ConvBlock(torch.nn.Module):
+class ConvBlock(torch.nn.Sequential):
     def __init__(self,
         in_channels: Optional[int],
         out_channels: Optional[int],
@@ -51,8 +51,6 @@ class ConvBlock(torch.nn.Module):
         act: Optional[torch.nn.Module | Callable | str] = None,
         pool: Optional[int | torch.nn.Module | Callable | str] = None,
         upsample: Optional[int | torch.nn.Module | Callable | str] = None,
-        residual = False,
-        recurrent = 1,
         ndim: int = 2,
         order = "UCPAND",
         device = None,
@@ -80,8 +78,6 @@ class ConvBlock(torch.nn.Module):
             custom_op (_type_, optional): Custom operation to replace convolution. Defaults to None.
             order (str, optional): Order of operations. Defaults to "cpand".
         """
-        super().__init__()
-
         if out_channels is None:
             if in_channels is None: raise ValueError("Either `in_channels` or `out_channels` must be provided.")
             out_channels = in_channels
@@ -115,7 +111,7 @@ class ConvBlock(torch.nn.Module):
                 ndim = ndim,
             )
 
-        self.layers = _create_module_order(
+        layers = _create_module_order(
             modules = dict(C=conv_layer, P=pool, A=act, N=norm, D=dropout, U=upsample, _=crop),
             order = order.replace("C", "C_"),
             main_module='C',
@@ -125,21 +121,15 @@ class ConvBlock(torch.nn.Module):
             spatial_size = spatial_size,
             )
 
-        self.residual = residual
-        self.recurrent = recurrent
+        super().__init__(*layers)
 
-    def forward(self, x:torch.Tensor):
-        for _ in range(self.recurrent):
-            if self.residual: x = x + pad_like(self.layers(x), x)
-            else: x = self.layers(x)
-        return x
 
 def _get_samesize_transpose_padding(kernel_size:int | Sequence[int]) -> int | tuple:
     """Return padding that retains input size given a kernel size."""
     if isinstance(kernel_size, int): return int((kernel_size - 1) // 2)
     else: return tuple([_get_samesize_transpose_padding(i) for i in kernel_size]) # type:ignore
 
-class ConvTransposeBlock(torch.nn.Module):
+class ConvTransposeBlock(torch.nn.Sequential):
     def __init__(self,
         in_channels: Optional[int],
         out_channels: Optional[int],
@@ -183,8 +173,6 @@ class ConvTransposeBlock(torch.nn.Module):
             custom_op (_type_, optional): Custom operation to replace convolution. Defaults to None.
             order (str, optional): Order of operations. Defaults to "cpand".
         """
-        super().__init__()
-
         if out_channels is None:
             if in_channels is None: raise ValueError("Either `in_channels` or `out_channels` must be provided.")
             out_channels = in_channels
@@ -212,7 +200,7 @@ class ConvTransposeBlock(torch.nn.Module):
             ndim = ndim,
         )
 
-        self.layers = _create_module_order(
+        layers = _create_module_order(
             modules = dict(C=upconv_layer, U=upsample, A=act, N=norm, D=dropout, P=pool),
             order = order,
             main_module='C',
@@ -222,5 +210,4 @@ class ConvTransposeBlock(torch.nn.Module):
             spatial_size = spatial_size,
             )
 
-    def forward(self, x:torch.Tensor):
-        return self.layers(x)
+        super().__init__(*layers)
