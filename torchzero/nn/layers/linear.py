@@ -3,7 +3,9 @@ from typing import Optional
 from collections.abc import Sequence, Callable
 import torch
 from .generic_block import _create_module_order
-from ..layers.pad import pad_like
+from .pad import pad_like
+from .sequential import Sequential
+
 from .._library.activation import create_act
 from .._library.norm import create_norm
 from .._library.dropout import create_dropout
@@ -11,7 +13,7 @@ __all__ = [
     'LinearBlock',
 ]
 
-class LinearBlock(torch.nn.Sequential):
+class LinearBlock(Sequential):
     def __init__(self,
         in_features: Optional[int],
         out_features: int,
@@ -21,7 +23,7 @@ class LinearBlock(torch.nn.Sequential):
         act: Optional[torch.nn.Module | Callable] = None,
         flatten: bool | Sequence[int] = False,
         custom_op = None,
-        order = 'FLAND'
+        order = 'FLAND',
         ):
         """Linear block
 

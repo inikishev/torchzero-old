@@ -2,7 +2,7 @@
 from collections.abc import Callable, Sequence
 from typing import Optional
 import torch
-from ..nn.container import ensure_module
+from ..nn.layers.sequential import ensure_module
 
 class LossMean(torch.nn.Module):
     def __init__(self, losses:Sequence[torch.nn.Module | Callable], weights:Optional[Sequence[int|float]] = None):

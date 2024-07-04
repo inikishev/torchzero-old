@@ -2,6 +2,7 @@
 from typing import Optional
 import torch
 
+
 def half_minmax(x:torch.Tensor, residual: Optional[float | torch.Tensor]=None):
     channels = x.size(1)
     if channels == 1: return torch.nn.functional.relu(x, True)
@@ -110,6 +111,8 @@ __all__ = [
     "HalfMinMax",
     "half_summax",
     "HalfSumMax",
+    "half_mulmax",
+    "HalfMulMax",
     'firstmax',
     "FirstMax"
     ]

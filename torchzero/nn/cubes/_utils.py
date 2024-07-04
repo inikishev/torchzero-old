@@ -3,7 +3,7 @@ from collections.abc import Sequence
 import functools
 import torch
 
-from ..quick import seq
+from ..layers.sequential import Sequential
 
 
 CubePartial = Callable | Sequence[Callable] | Any
@@ -38,7 +38,7 @@ def _list_to_partial_seq(x: Sequence[Callable | Any]) -> Callable:
         scales:list[Any] = [None for _ in range(len(x))]
         scales[scaleidx] = scale
 
-        return seq([f(in_channels = channels[i], out_channels = channels[i+1], scale = scales[i], ndim=ndim, **kwargs) for i,f in enumerate(x)])
+        return Sequential([f(in_channels = channels[i], out_channels = channels[i+1], scale = scales[i], ndim=ndim, **kwargs) for i,f in enumerate(x)])
     return partial_sequential
 
 def partial_seq(x: CubePartial) -> Callable:

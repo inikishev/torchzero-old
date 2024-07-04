@@ -31,6 +31,7 @@ def func_to_named_module(func:Callable, name:Optional[str] = None) -> nn.Module:
         nn.Module: The named module.
     """
     if name is None: name = func.__name__ if hasattr(func, '__name__') else func.__class__.__name__
+    name = ''.join([i for i in name if i.isalnum()])
     cls = type(name, (FuncModule,), {})
     return cls(func)
 

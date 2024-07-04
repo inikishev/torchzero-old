@@ -3,15 +3,15 @@ from typing import Optional, Any
 from collections.abc import Sequence, Callable
 import torch
 
-from ..quick import seq
 from .._library.norm import create_norm
 from .._library.dropout import create_dropout
 from .._library.pool import create_pool
 from .._library.activation import create_act
 from .._library.upsample import create_upsample
 from .._library.flatten import create_flatten
-from ..layers.pad import pad_like
-from ..layers.func import func_to_named_module
+from .sequential import Sequential
+from .pad import pad_like
+from .func import func_to_named_module
 
 _MODULE_CREATORS = {
     'A': create_act,
@@ -53,9 +53,9 @@ def _create_module_order(
             # else what is it???
             else: raise ValueError(f"Unknown `{c}` module type `{mod}`")
 
-    return torch.nn.Sequential(*module_order)
+    return module_order
 
-class GenericBlock(torch.nn.Module):
+class GenericBlock(Sequential):
     def __init__(self,
         module: torch.nn.Module | Callable | Sequence[torch.nn.Module | Callable],
         in_channels: Optional[int] = None,
@@ -68,8 +68,7 @@ class GenericBlock(torch.nn.Module):
         order = "MPAND",
         spatial_size: Optional[Sequence[int]] = None,
     ):
-        if callable(module): self.module = module
-        else: self.module = seq(module)
+        if not callable(module): module = Sequential(module)
 
         layers = _create_module_order(
             modules = dict(M=self.module, P=pool, A=act, N=norm, D=dropout),

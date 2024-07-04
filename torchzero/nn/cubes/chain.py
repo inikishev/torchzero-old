@@ -8,6 +8,7 @@ import torch
 
 from ..layers.func import ensure_module
 from ..layers.pad import pad_like
+from ..layers.sequential import Sequential
 from ._utils import partial_seq, _snap_int, _get_partial_from_locals, CubePartial, unsupported_by_this_cube
 
 __all__ = [
@@ -41,7 +42,7 @@ def _generate_channels(in_channels, out_channels, mode, num, snap) -> list[int]:
     if snap is not None: channels = [channels[0]] + [_snap_int(i, snap) for i in channels[1:-1]] + [channels[-1]]
     return channels
 
-class ChainCube(torch.nn.Sequential):
+class ChainCube(Sequential):
     def __init__(self,
         cube,
         num:int,
@@ -124,7 +125,7 @@ class ChainCube(torch.nn.Sequential):
 
 
 
-class StraightAndResizeCube(torch.nn.Sequential):
+class StraightAndResizeCube(Sequential):
     def __init__(self,
         straight_cube,
         resize_cube,
@@ -209,7 +210,7 @@ class StraightAndResizeCube(torch.nn.Sequential):
         kwargs = locals().copy()
         return _get_partial_from_locals(cls, kwargs)
 
-class SequenceCube(torch.nn.Sequential):
+class SequenceCube(Sequential):
     def __init__(self,
                  cubes:Sequence[CubePartial],
                  in_channels: int,

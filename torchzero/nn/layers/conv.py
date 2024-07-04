@@ -11,8 +11,10 @@ from .._library.dropout import create_dropout
 from .._library.pool import create_pool
 from .._library.activation import create_act
 from .._library.upsample import create_upsample
-from ..layers.pad import pad_to_shape, pad_to_channels_like
-from ..layers.crop import SpatialReduceCrop
+from .pad import pad_to_shape, pad_to_channels_like
+from .crop import SpatialReduceCrop
+from .sequential import Sequential
+
 
 __all__ = [
     'ConvBlock',
@@ -36,7 +38,7 @@ def _act_is_first(order:str, main_char:str):
         if char == 'A': return True
         elif char == main_char: return False
 
-class ConvBlock(torch.nn.Sequential):
+class ConvBlock(Sequential):
     def __init__(self,
         in_channels: Optional[int],
         out_channels: Optional[int],
@@ -129,7 +131,7 @@ def _get_samesize_transpose_padding(kernel_size:int | Sequence[int]) -> int | tu
     if isinstance(kernel_size, int): return int((kernel_size - 1) // 2)
     else: return tuple([_get_samesize_transpose_padding(i) for i in kernel_size]) # type:ignore
 
-class ConvTransposeBlock(torch.nn.Sequential):
+class ConvTransposeBlock(Sequential):
     def __init__(self,
         in_channels: Optional[int],
         out_channels: Optional[int],
