@@ -3,8 +3,8 @@ from typing import Optional, Literal
 from collections.abc import Sequence, Callable
 from functools import partial
 import torch
-from .sequential import Sequential
-from .._library.convolution import Convnd
+from ..sequential import Sequential
+from ..._library.convolution import Convnd
 from .conv import _get_samesize_padding_int
 
 __all__ = [

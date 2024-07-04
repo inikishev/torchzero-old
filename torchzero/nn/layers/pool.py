@@ -1,6 +1,14 @@
 import torch
 from .._library.pool import AvgPoolnd, MaxPoolnd, AdaptiveAvgPoolnd, AdaptiveMaxPoolnd
 
+__all__ = [
+    "AvgMaxCatPool",
+    "AvgMaxSumPool",
+    "AvgMaxMulPool",
+    "AdaptiveAvgMaxCatPool",
+    "AdaptiveAvgMaxSumPool",
+    "AdaptiveAvgMaxMulPool",
+]
 class AvgMaxCatPool(torch.nn.Module):
     def __init__(self, kernel_size: int|tuple,
     stride: int|tuple | None = None,

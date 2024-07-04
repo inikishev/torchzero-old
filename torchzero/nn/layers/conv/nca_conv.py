@@ -4,7 +4,7 @@ from typing import Optional, Literal
 from collections.abc import Sequence, Callable
 import torch
 
-from .._library.convolution import Convnd
+from ..._library.convolution import Convnd
 from .conv import ConvBlock, _get_samesize_padding_int
 # conv2d args:
 # in_channels: int,

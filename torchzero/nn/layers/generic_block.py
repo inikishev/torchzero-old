@@ -13,6 +13,9 @@ from .sequential import Sequential
 from .pad import pad_like
 from .func import func_to_named_module
 
+__all__ = [
+    "GenericBlock",
+]
 _MODULE_CREATORS = {
     'A': create_act,
     'D': create_dropout,

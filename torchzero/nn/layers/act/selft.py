@@ -2,6 +2,16 @@
 from typing import Optional
 import torch
 
+__all__ = [
+    "half_minmax",
+    "HalfMinMax",
+    "half_summax",
+    "HalfSumMax",
+    "half_mulmax",
+    "HalfMulMax",
+    'firstmax',
+    "FirstMax"
+    ]
 
 def half_minmax(x:torch.Tensor, residual: Optional[float | torch.Tensor]=None):
     channels = x.size(1)
@@ -106,13 +116,3 @@ class FirstMax(torch.nn.Module):
         return firstmax(x, self.leak)
 
 
-__all__ = [
-    "half_minmax",
-    "HalfMinMax",
-    "half_summax",
-    "HalfSumMax",
-    "half_mulmax",
-    "HalfMulMax",
-    'firstmax',
-    "FirstMax"
-    ]

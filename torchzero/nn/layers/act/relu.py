@@ -5,6 +5,21 @@ import torch
 
 FloatOrTensor = int | float | torch.Tensor
 
+
+__all__ = [
+    "general_relu",
+    'GeneralReLU',
+    'symmetric_relu',
+    'SymReLU',
+    "LearnReLU",
+    'LearnLeakyReLU',
+    'LearnGeneralReLU',
+    'LearnSymReLU',
+    "general_relu",
+    "symmetric_relu",
+]
+
+
 def general_relu(x, leak:Optional[float] = None, sub:Optional[float] = None, maxv: Optional[FloatOrTensor] = None, inplace=True):
     """GeneralReLU described by Jeremy Howard in his fastai courses. Leaky ReLU but shifted down.
 
@@ -147,15 +162,3 @@ class LearnSymReLU(nn.Module):
         if self.minv is not None: x = x.maximum(self.minv)
         return x
 
-
-
-__all__ = [
-    'GeneralReLU',
-    'SymReLU',
-    "LearnReLU",
-    'LearnLeakyReLU',
-    'LearnGeneralReLU',
-    'LearnSymReLU',
-    "general_relu",
-    "symmetric_relu",
-]

@@ -81,6 +81,7 @@ _SKIP_FNS: dict[str, tuple[Callable, Callable]] = dict(
 
 SkipLiteral = Literal['cat', 'catsum', 'catmul', 'sum', 'mul', 'batch', 'batchsum', 'batchmul', 'batchcat', 'spatial', 'spatialsum', 'spatialmul', 'spatialcat', 'dim', 'dimsum', 'dimmul', 'dimcat', 'none', 'skip']
 
+
 class SkipCube(torch.nn.Module):
     """Skip a cube."""
     def __init__(
@@ -91,7 +92,7 @@ class SkipCube(torch.nn.Module):
         ndim=2,
         scale = None,
         cube: Optional[CubePartial] = None,
-        skip: SkipLiteral = "cat",
+        skip_mode: SkipLiteral = "cat",
         skip_cube: Optional[CubePartial] = None,
         skip_scale: Optional[float] = None,
         skip_out_channels: Optional[int] = None,
@@ -140,16 +141,16 @@ class SkipCube(torch.nn.Module):
         else: self.orig_cube = _identity
         if orig_cube is not None and orig_out_channels is not None: in_channels = orig_out_channels
 
-        if skip.startswith('cat'): in_channels += skip_channels # type:ignore
-        if skip.startswith('dim'): ndim += 1
+        if skip_mode.startswith('cat'): in_channels += skip_channels # type:ignore
+        if skip_mode.startswith('dim'): ndim += 1
 
-        if skip.endswith('cat') and skip not in ('cat',):
+        if skip_mode.endswith('cat') and skip_mode not in ('cat',):
             if out_channels % 2 != 0: raise ValueError(f"out_channels must be divisible by 2 for skip modes that end with 'cat', but it is `{out_channels}`.")
             out_channels = int(out_channels / 2)
 
-        if skip.startswith('cat') and skip not in ('cat',):
+        if skip_mode.startswith('cat') and skip_mode not in ('cat',):
             out_channels *= 2
-        
+
         if cube is not None: self.cube = partial_seq(cube)(in_channels=in_channels, out_channels=out_channels, scale=scale, ndim=ndim)
         else: self.cube = _identity
 
@@ -157,8 +158,8 @@ class SkipCube(torch.nn.Module):
         self.orig_dropout = orig_dropout if orig_dropout is not None else 0
         self.swap_p = swap_p if swap_p is not None else 0
 
-        self.skip = skip
-        self.skip_fn, self.post_fn = _SKIP_FNS[skip]
+        self.skip = skip_mode
+        self.skip_fn, self.post_fn = _SKIP_FNS[skip_mode]
 
 
     def forward(self, x, x_skip):

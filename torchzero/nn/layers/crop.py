@@ -1,5 +1,10 @@
 import torch
-def spatial_crop(x:torch.Tensor, crop:int = 1):
+
+__all__ = [
+    "spatial_reduce_crop",
+    "SpatialReduceCrop"
+]
+def spatial_reduce_crop(x:torch.Tensor, crop:int = 1):
     """Crops spatial dim sizes in a BC* tensor by `num`.
     For example, if `num = 1`, (16, 3, 129, 129) -> (16, 3, 128, 128).
     This crops at the end. Useful to crop padding which can only add even size."""
@@ -12,4 +17,4 @@ class SpatialReduceCrop(torch.nn.Module):
         self.crop = crop
 
     def forward(self, x:torch.Tensor):
-        return spatial_crop(x, crop=self.crop)
+        return spatial_reduce_crop(x, crop=self.crop)

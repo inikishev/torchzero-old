@@ -9,6 +9,7 @@ from .sequential import Sequential
 from .._library.activation import create_act
 from .._library.norm import create_norm
 from .._library.dropout import create_dropout
+
 __all__ = [
     'LinearBlock',
 ]
