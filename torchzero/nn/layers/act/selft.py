@@ -76,7 +76,7 @@ def half_mulmax(x:torch.Tensor, residual: Optional[float | torch.Tensor]=None):
     return torch.cat((torch.maximum(half1, mul), torch.maximum(half2, mul)), dim=1) + x * residual
 
 class HalfMulMax(torch.nn.Module):
-    def __init__(self, residual:Optional[float | torch.Tensor]):
+    def __init__(self, residual:Optional[float | torch.Tensor] = None):
         """Splits input into two halves by channels, calculates their product, and returns element-wise maximums of each half with the product.
 
         Then returns (in pseudocode):

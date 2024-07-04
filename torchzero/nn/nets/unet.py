@@ -131,7 +131,7 @@ class UNet(BasicUNet):
         encoder_channels_module: Literal["downsample", "straight"] = 'straight',
         decoder_channels_module: Literal["upsample", "straight"] = 'upsample',
         decoder_straight1_override: Optional[CubePartial] = None,
-        first_override: Optional[CubePartial] = None,
+        first: Optional[CubePartial] = None,
         scale = unsupported_by_this_cube,
     ):
         # ------------------------------- process args ------------------------------- #
@@ -179,8 +179,8 @@ class UNet(BasicUNet):
             out_channels=out_channels,
             ndim=ndim,
             first = [straight for _ in range(first_blocks)]
-                if first_override is None
-                else [partial_seq(first_override) for _ in range(first_blocks)],
+                if first is None
+                else [first] + [partial_seq(straight) for _ in range(first_blocks)],
             down=IdentityCube,
             up=IdentityCube,
             head=head,
@@ -242,7 +242,7 @@ class SegResNet(UNet):
             downsample = downsample,
             upsample = upsample,
             head = head,
-            first_override = [first, SegResBlock, dict(c=0)],
+            first = first,
             skip = skip,
             skip_cube = skip_cube,
             skip_dropout = skip_dropout,

@@ -3,7 +3,7 @@ from typing import Any, Optional
 from collections.abc import Callable
 import torch
 import torch.nn.common_types
-
+from ..._library.convolution import Convnd, ConvTransposend
 def identity(x): return x
 def _identity_if_none(x):
     if x is None: return identity
@@ -31,13 +31,10 @@ class RMSConv(torch.nn.Module):
         n = 2,
         ndim=2,
         act:Optional[Callable] = None,
+        conv = Convnd,
 ):
         super().__init__()
-        if ndim == 1: Convnd = torch.nn.Conv1d
-        elif ndim == 2: Convnd = torch.nn.Conv2d
-        elif ndim == 3: Convnd = torch.nn.Conv3d
-        else: raise ValueError
-        self.conv_modules = torch.nn.ModuleList([Convnd(
+        self.conv_modules = torch.nn.ModuleList([conv(
             in_channels=in_channels,
             out_channels=out_channels,
             kernel_size=kernel_size,
@@ -49,6 +46,7 @@ class RMSConv(torch.nn.Module):
             padding_mode=padding_mode,
             device=device,
             dtype=dtype,
+            ndim = ndim
         ) for _ in range(n)])
         self.act = _identity_if_none(act)
 
@@ -74,13 +72,10 @@ class ArctanConv(torch.nn.Module):
         dtype: Any | None = None,
         ndim = 2,
         act:Optional[Callable] = None,
+        conv = Convnd,
 ):
         super().__init__()
-        if ndim == 1: Convnd = torch.nn.Conv1d
-        elif ndim == 2: Convnd = torch.nn.Conv2d
-        elif ndim == 3: Convnd = torch.nn.Conv3d
-        else: raise ValueError
-        self.conv_modules = torch.nn.ModuleList([Convnd(
+        self.conv_modules = torch.nn.ModuleList([conv(
             in_channels=in_channels,
             out_channels=out_channels,
             kernel_size=kernel_size,
@@ -92,6 +87,7 @@ class ArctanConv(torch.nn.Module):
             padding_mode=padding_mode,
             device=device,
             dtype=dtype,
+            ndim = ndim,
         ) for _ in range(2)])
         self.act = _identity_if_none(act)
 
@@ -116,13 +112,10 @@ class RMSConvTranspose(torch.nn.Module):
         n = 2,
         ndim=2,
         act:Optional[Callable] = None,
+        conv = ConvTransposend,
 ):
         super().__init__()
-        if ndim == 1: Convnd = torch.nn.ConvTranspose1d
-        elif ndim == 2: Convnd = torch.nn.ConvTranspose2d
-        elif ndim == 3: Convnd = torch.nn.ConvTranspose3d
-        else: raise ValueError
-        self.conv_modules = torch.nn.ModuleList([Convnd(
+        self.conv_modules = torch.nn.ModuleList([conv(
             in_channels=in_channels,
             out_channels=out_channels,
             kernel_size=kernel_size,
@@ -135,6 +128,7 @@ class RMSConvTranspose(torch.nn.Module):
             padding_mode=padding_mode,
             device=device,
             dtype=dtype,
+            ndim = ndim,
         ) for _ in range(n)])
         self.act = _identity_if_none(act)
 
@@ -161,13 +155,10 @@ class ArctanConvTranspose(torch.nn.Module):
             dtype = None,
             ndim=2,
             act:Optional[Callable] = None,
+            conv = ConvTransposend,
         ):
         super().__init__()
-        if ndim == 1: Convnd = torch.nn.ConvTranspose1d
-        elif ndim == 2: Convnd = torch.nn.ConvTranspose2d
-        elif ndim == 3: Convnd = torch.nn.ConvTranspose3d
-        else: raise ValueError
-        self.conv_modules = torch.nn.ModuleList([Convnd(
+        self.conv_modules = torch.nn.ModuleList([conv(
             in_channels=in_channels,
             out_channels=out_channels,
             kernel_size=kernel_size,
@@ -180,6 +171,7 @@ class ArctanConvTranspose(torch.nn.Module):
             padding_mode=padding_mode,
             device=device,
             dtype=dtype,
+            ndim = ndim,
         ) for _ in range(2)])
         self.act = _identity_if_none(act)
 
