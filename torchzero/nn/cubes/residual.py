@@ -55,5 +55,5 @@ class ResidualCube(torch.nn.Module):
         return self.skip(out, x)
 
     @classmethod
-    def partial(cls, cube, resample = None):
-        return functools.partial(cls, cube=cube, resample=resample)
+    def partial(cls, cube, resample = None, skip_mode: SkipLiteral = 'sum'):
+        return functools.partial(cls, cube=cube, resample=resample, skip_mode = skip_mode)

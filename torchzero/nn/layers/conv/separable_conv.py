@@ -58,7 +58,7 @@ class DWSepConv(Sequential):
             padding=padding,
             dilation=dilation,
             groups=in_channels, # makes it depthwise
-            bias=bias,
+            bias=False,
             padding_mode=padding_mode,
             device=device,
             dtype=dtype,
