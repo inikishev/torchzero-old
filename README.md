@@ -1,7 +1,7 @@
 # torchzero
 Zeroth order pytorch optimizers and gradient approximators (SPSA, RDSA, FDSA, etc) with efficient `foreach` implementations; as well as few first order optimizers. Better docs later.
 
-Optimize non-differentiable model/function with SPSA or any other zeroth order optimizer:
+### Optimize non-differentiable model/function with SPSA or any other zeroth order optimizer:
 ```py
 from torchzero.optim import SPSA
 optimizer = SPSA(model.parameters(), lr = 1e-3, magn = 1e-5)
@@ -14,7 +14,7 @@ for inputs, targets in dataloader:
     optimizer.step(closure)
 ```
 
-Use SPSA as gradient approximator for gradient-based optimizer:
+### Use SPSA as gradient approximator for gradient-based optimizer:
 ```py
 from torchzero.optim import SPSA
 grad_approximator = SPSA(model.parameters(), magn = 1e-5, set_grad = True)
@@ -30,7 +30,7 @@ for inputs, targets in dataloader:
     optimizer.step() 
 ```
 
-All implemented algorithms:
+## All implemented algorithms:
 - Simultaneous perturbation stochastic approximation (SPSA), random direction stochastic approximation (RDSA), and two-step random search - all implemented by the `SPSA` optimizer, e.g. `SPSA(..., variant = "RDSA")`;
 - Finite Differences Stochastic Approximation (FDSA);
 - Random optimization (`RandomOptimizer`);
@@ -40,4 +40,4 @@ All implemented algorithms:
 - Newton's root finding method
 - Caputo fractional derivative optimizer
 
-All of those are available in `optim` submodule and work like any other pytorch optimizer. For small problems (1-10 parameters, FDSA or SPSA may work well; for more parameters SPSA is much faster because it only needs 2 evaluations per step. For very large number of parameters, around >10000, I found that RandomOptimizer + AdamW works best. First order and root finding methods are to be tested (I made sure they work though). Most algorithms use `foreach` operations (optionally, controlled by `foreach` argument), which in makes them a bit more efficient.
+All of those are available in `optim` submodule and work like any other pytorch optimizer. For small problems (1-10 parameters, FDSA or SPSA may work well; for more parameters SPSA is much faster because it only needs 2 evaluations per step. For very large number of parameters, around >10000, I found that RandomOptimizer + AdamW works best. First order and root finding methods are to be tested (I made sure they work though). Most algorithms use `foreach` operations (optionally, controlled by `foreach` argument), which makes them a bit more efficient.
