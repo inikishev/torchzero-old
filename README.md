@@ -40,4 +40,4 @@ All implemented algorithms:
 - Newton's root finding method
 - Caputo fractional derivative optimizer
 
-All of those are available in `optim` submodule and work like any other pytorch optimizer. For small problems (1-10 parameters, FDSA or SPSA may work well; for more parameters SPSA is much faster because it only needs 2 evaluations per step. For very large number of parameters, around >10000, I found that RandomOptimizer + AdamW works best. First order and root finding methods are to be tested (I made sure they work though)
+All of those are available in `optim` submodule and work like any other pytorch optimizer. For small problems (1-10 parameters, FDSA or SPSA may work well; for more parameters SPSA is much faster because it only needs 2 evaluations per step. For very large number of parameters, around >10000, I found that RandomOptimizer + AdamW works best. First order and root finding methods are to be tested (I made sure they work though). Most algorithms use `foreach` operations (optionally, controlled by `foreach` argument), which in makes them a bit more efficient.
