@@ -1,0 +1,120 @@
+last updates std:
+    count: 18749
+    type: <class 'torch.Tensor'>
+    last value: 0.0
+    lowest: 0.0
+    highest: 7.57775708848385e-09
+    mean: 7.204711827135668e-11
+
+lr:
+    count: 18750
+    type: <class 'float'>
+    last value: 1e-05
+    lowest: 1e-05
+    highest: 1e-05
+    mean: 1e-05
+
+param max:
+    count: 18750
+    type: <class 'torch.Tensor'>
+    last value: 1.9287272691726685
+    lowest: 0.2501659691333771
+    highest: 1.9996594190597534
+    mean: 1.3412691354751587
+
+param mean:
+    count: 18750
+    type: <class 'torch.Tensor'>
+    last value: 2.0198322090436704e-05
+    lowest: -0.0002634411212056875
+    highest: 0.0010280116694048047
+    mean: 0.00020057322399225086
+
+param min:
+    count: 18750
+    type: <class 'torch.Tensor'>
+    last value: -2.2835960388183594
+    lowest: -2.3586978912353516
+    highest: -0.24949190020561218
+    mean: -1.5140633583068848
+
+param path mean:
+    count: 18750
+    type: <class 'list'>
+
+param var:
+    count: 18750
+    type: <class 'torch.Tensor'>
+    last value: 0.21499884128570557
+    lowest: 0.0006750977481715381
+    highest: 0.21499884128570557
+    mean: 0.1191665530204773
+
+test loss:
+    count: 11
+    type: <class 'numpy.float64'>
+    last value: 2.357916059585425
+    lowest: 2.2422129551823526
+    highest: 2.364632887581286
+    mean: 2.3319916028530487
+
+test loss max:
+    count: 11
+    type: <class 'numpy.float64'>
+    last value: 2.461150884628296
+    lowest: 2.307344436645508
+    highest: 2.461150884628296
+    mean: 2.4194403128190474
+
+test loss median:
+    count: 11
+    type: <class 'numpy.float64'>
+    last value: 2.367400884628296
+    lowest: 2.2447168827056885
+    highest: 2.367400884628296
+    mean: 2.337975111874667
+
+test loss min:
+    count: 11
+    type: <class 'numpy.float64'>
+    last value: 2.179900884628296
+    lowest: 2.1096155643463135
+    highest: 2.2971572875976562
+    mean: 2.197942538694902
+
+time:
+    count: 18750
+    type: <class 'float'>
+    last value: 521.2829185000155
+    lowest: 2.264463400002569
+    highest: 521.2829185000155
+    mean: 249.96878204673763
+
+train loss:
+    count: 18750
+    type: <class 'float'>
+    last value: 2.398650884628296
+    lowest: 1.8895726203918457
+    highest: 2.461150884628296
+    mean: 2.325339043909709
+
+update angle:
+    count: 18750
+    type: <class 'torch.Tensor'>
+    last value: 0.0
+    lowest: 0.0
+    highest: 0.31271764636039734
+    mean: 0.005880274809896946
+
+update path mean:
+    count: 18750
+    type: <class 'list'>
+
+update var:
+    count: 18750
+    type: <class 'torch.Tensor'>
+    last value: 0.0
+    lowest: 0.0
+    highest: 5.742240828484325e-17
+    mean: 4.753168177189509e-20
+

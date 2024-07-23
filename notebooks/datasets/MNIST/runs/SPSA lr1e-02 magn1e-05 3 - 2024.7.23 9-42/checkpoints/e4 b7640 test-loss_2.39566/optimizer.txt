@@ -1,0 +1,7 @@
+AcceleratedOptimizer (
+Parameter Group 0
+    lr: 0.01
+    magn: 1e-05
+    sampler: <function rademacher at 0x000001D84CA6A480>
+    variant: SPSA
+)

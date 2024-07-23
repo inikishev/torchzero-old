@@ -1,0 +1,5 @@
+AcceleratedOptimizer (
+Parameter Group 0
+    lr: 0.001
+    magn: 1e-05
+)

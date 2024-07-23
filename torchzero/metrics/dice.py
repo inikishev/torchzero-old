@@ -1,11 +1,11 @@
 import torch
 from ._reduce import _reduce, _ReductionLiterals
-def dice(y:torch.Tensor, yhat:torch.Tensor, reduce:_ReductionLiterals=None):
+def dice(y:torch.Tensor, yhat:torch.Tensor, reduction:_ReductionLiterals='nan1'):
     """
     Sørensen–Dice coefficient often used for segmentation. Defined as two intersections over sum. Equivalent to F1 score.
 
-    y: ground truth in binary one hot format, must be of BC(*) shape.
-    yhat: prediction in binary one hot format, must be of BC(*) shape.
+    y: ground truth in one hot format, must be of BC(*) shape.
+    yhat: prediction in one hot format, must be of BC(*) shape.
     reduce: `None`, `"mean"` or `"sum"`.
 
     returns: vector of len C with dice per each channel, or a single number if reduce is not None.
@@ -14,10 +14,10 @@ def dice(y:torch.Tensor, yhat:torch.Tensor, reduce:_ReductionLiterals=None):
     yhat = yhat.to(torch.bool)
     intersection = (y & yhat).sum((0, *list(range(2, y.ndim))))
     sum_ = y.sum((0, *list(range(2, y.ndim)))) + yhat.sum((0, *list(range(2, y.ndim))))
-    return _reduce((2*intersection) / sum_, reduce)
+    return _reduce((2*intersection) / sum_, reduction)
 
 
-def softdice(y:torch.Tensor, yhat:torch.Tensor, reduce:_ReductionLiterals=None):
+def softdice(y:torch.Tensor, yhat:torch.Tensor, reduction:_ReductionLiterals='nan1'):
     """
     A differentiable verison of Sørensen–Dice coefficient, uses multiplication instead of intersection.
 
@@ -29,4 +29,4 @@ def softdice(y:torch.Tensor, yhat:torch.Tensor, reduce:_ReductionLiterals=None):
     """
     intersection = (y * yhat).sum((0, *list(range(2, y.ndim))))
     sum_ = y.sum((0, *list(range(2, y.ndim)))) + yhat.sum((0, *list(range(2, y.ndim))))
-    return _reduce((2*intersection) / sum_, reduce)
+    return _reduce((2*intersection) / sum_, reduction)

@@ -6,7 +6,7 @@ from ..cubes.residual import ResidualCube
 from ..cubes.convtranspose import ConvTranspose2StrideCube, ConvTranspose3StrideCube
 from ..cubes.maxpool import MaxPoolCube
 from ..cubes.chain import ChainCube, StraightAndResizeCube, SequenceCube, _generate_channels
-from ..cubes.skip import SkipCube, SkipLiteral
+from ..cubes.skip import SkipCube, SkipLiteral, SaveCube, PassAndSkipCube
 from ..cubes.identity import IdentityCube
 from ..cubes._utils import unsupported_by_this_cube, partial_seq, CubePartial
 from ..layers.pad import pad_to_channels_like
@@ -282,3 +282,4 @@ class SegResNet(UNet):
             decoder_straight_overrides = decoder_straight_overrides,
             decoder_upsample_overrides = decoder_upsample_overrides,
         )
+

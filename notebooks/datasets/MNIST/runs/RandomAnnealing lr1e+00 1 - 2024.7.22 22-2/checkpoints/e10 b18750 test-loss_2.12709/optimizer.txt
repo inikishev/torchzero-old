@@ -1,0 +1,6 @@
+AcceleratedOptimizer (
+Parameter Group 0
+    lr: 0.3678696308350076
+    n_steps: 18750
+    sampler: <built-in method randn of type object at 0x00007FFE7B8169E0>
+)

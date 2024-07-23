@@ -1,0 +1,32 @@
+name: SPSA foreach lr1e-03 magn1e-05
+current batch: 312
+total batches: 18750
+current epoch: 9
+total epochs: 10
+status: test
+model class: __main__.CNN
+optimizer class: accelerate.optimizer.AcceleratedOptimizer
+scheduler class: NoneType
+loss_fn class: torch.nn.modules.loss.CrossEntropyLoss
+accelerator class: accelerate.accelerator.Accelerator
+device: cuda
+
+callbacks:
+   - glio.train.metrics.metrics_basic.LogLossCB
+   - glio.train.cbs_hooks.SaveForwardChannelImagesCB
+   - glio.train.cbs_updatestats.LogParamDistCB
+   - glio.train.cbs_updatestats.LogParamPathCB
+   - glio.train.cbs_updatestats.LogUpdateDistCB
+   - glio.train.cbs_updatestats.LogUpdatePathCB
+   - glio.train.cbs_updatestats.LogLastUpdatesAngleCB
+   - glio.train.cbs_log.LogTimeCB
+   - glio.train.cbs_log.LogLRCB
+   - glio.train.cbs_log.LogOptimizerParamCB
+   - glio.train.cbs_summary.DisplayLoggerTableCB
+   - glio.train.cbs_accelerate.AccelerateCB
+   - glio.train.cbs_performance.PerformanceTweaksCB
+   - glio.train.cbs_save.SaveLastCB
+   - glio.train.cbs_liveplot.LivePlotCB
+   - glio.train.cbs_simpleprogress.SimpleProgressBarCB
+   - glio.train.cbs_default_overrides.GradientFreeWithZeroGradCB
+   - glio.train.cbs_default_overrides.OneBatchClosureWithNoBackwardCB

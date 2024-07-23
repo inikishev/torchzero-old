@@ -41,12 +41,12 @@ class LinearBlock(Sequential):
             order (str, optional): _description_. Defaults to 'fland'.
         """
         # linear
-        if in_features is None: self.linear = torch.nn.LazyLinear(out_features, bias)
-        elif custom_op is None: self.linear = torch.nn.Linear(in_features, out_features, bias) # type:ignore
-        else: self.linear = custom_op(in_features, out_features, bias) # type:ignore
+        if in_features is None: linear = torch.nn.LazyLinear(out_features, bias)
+        elif custom_op is None: linear = torch.nn.Linear(in_features, out_features, bias) # type:ignore
+        else: linear = custom_op(in_features, out_features, bias) # type:ignore
 
         layers = _create_module_order(
-            modules = dict(L=self.linear, A=act, N=norm, D=dropout, F=flatten),
+            modules = dict(L=linear, A=act, N=norm, D=dropout, F=flatten),
             order = order,
             main_module='L',
             in_channels = in_features,

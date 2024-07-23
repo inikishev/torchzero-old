@@ -41,7 +41,6 @@ def rademacher(shape, p=0.5, device=None, requires_grad = False, dtype=None):
     """
     return ((torch.rand(shape, dtype=dtype, device=device, requires_grad=requires_grad) < p)) * 2 - 1
 
-
 def rademacher_like(x:torch.Tensor, p=0.5, ):
     """50% to draw a 1 and 50% to draw a -1. For example:
     ```
@@ -50,6 +49,11 @@ def rademacher_like(x:torch.Tensor, p=0.5, ):
     """
     return rademacher(x.shape, p=p, device=x.device, requires_grad=x.requires_grad, dtype=x.dtype)
 
+def randmask(shape, p=0.5, device=None, requires_grad = False):
+    return torch.rand(shape, device=device, requires_grad=requires_grad) < p
+
+def randmask_like(x:torch.Tensor, p=0.5, ):
+    return randmask(x.shape, p=p, device=x.device, requires_grad=x.requires_grad)
 
 def similar_like(x:torch.Tensor, sampler=torch.randn_like):
     if x.numel() <= 1: return x.clone()
@@ -63,7 +67,7 @@ def similar_like(x:torch.Tensor, sampler=torch.randn_like):
         randmean = rand.mean()
         randstd = rand.std()
         return rand * (std / randstd) + (mean - randmean * randstd / std)
-    
+
 
 def randconv(shape, kshape, mode='reflect', sampler = torch.randn, ksampler = torch.randn):
     """Generates a random tensor of shape `shape` and uses scipy.ndimage.convolve with random tensor of shape kshaspe`"""

@@ -1,0 +1,6 @@
+AcceleratedOptimizer (
+Parameter Group 0
+    lr: 0.001
+    magn: 0.001
+    step_back: True
+)
