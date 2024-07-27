@@ -10,8 +10,6 @@ __all__ = [
 class PolyakMomentum(optim.Optimizer):
     def __init__(self, params, lr, b=0.6, foreach=True):
         """Polyak's Momentum (Heavy Ball Method).
-        Now we add the difference between current and previous parameters multiplied by `b`.
-        Meaning if current direction is similar to previous one, we go a bit further, and if it is different, we go less far.
         Polyak, Boris T. “Some methods of speeding up the convergence of iteration methods.” USSR Computational Mathematics and Mathematical Physics 4, no. 5 (1964): 1-17.
 
         Args:
@@ -24,7 +22,7 @@ class PolyakMomentum(optim.Optimizer):
         for group in self.param_groups:
             for p in group['params']:
                 state = self.state[p]
-                state['w(t)'] = torch.zeros_like(p)
+                state['last update'] = torch.zeros_like(p)
 
         self.foreach = foreach
 
@@ -36,18 +34,16 @@ class PolyakMomentum(optim.Optimizer):
 
         for group in self.param_groups:
             params, grads = get_group_params_and_grads_tensorlist(group, with_grad=True, foreach=self.foreach)
+            lr = group['lr']
+            b = group['b']
 
-            for p in params:
-                self.state[p]['w(t-1)'] = self.state[p]['w(t)']
-                self.state[p]['w(t)'] = p.clone()
-
-            wt_1 = _foreach.TensorList([self.state[p]['w(t-1)'] for p in params], foreach=self.foreach)
-            wt = _foreach.TensorList([self.state[p]['w(t)'] for p in params], foreach=self.foreach)
+            last_update = _foreach.TensorList([self.state[p]['last update'] for p in params], foreach=self.foreach)
+            last_update.sub_(grads, alpha = lr)
 
             # params = params - grads * lr
-            params.sub_(grads, alpha=group['lr'])
+            params.add_(last_update)
 
             # params = params + b * (params - prev_params)
-            params.add_(wt - wt_1, alpha=group['b'])
+            last_update.mul_(b)
 
         return loss

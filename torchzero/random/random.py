@@ -34,15 +34,15 @@ def randrect_like(x:torch.Tensor, fill = randfill_like):
     return randrect(x.shape, fill=fill, device=x.device, requires_grad=x.requires_grad, dtype=x.dtype)
 
 def rademacher(shape, p=0.5, device=None, requires_grad = False, dtype=None):
-    """p% to draw a 1 and -p% to draw a -1. Looks like this:
+    """100p% to draw a -1 and 100(1-p)% to draw a 1. Looks like this:
     ```
     [-1,  1,  1, -1, -1,  1, -1,  1,  1, -1, -1, -1,  1, -1,  1, -1, -1,  1, -1,  1]
     ```
     """
-    return ((torch.rand(shape, dtype=dtype, device=device, requires_grad=requires_grad) < p)) * 2 - 1
+    return (torch.rand(shape, dtype=dtype, device=device, requires_grad=requires_grad) - p).sign()
 
 def rademacher_like(x:torch.Tensor, p=0.5, ):
-    """50% to draw a 1 and 50% to draw a -1. For example:
+    """100p% to draw a -1 and 100(1-p)% to draw a 1. Looks like this:
     ```
     [-1,  1,  1, -1, -1,  1, -1,  1,  1, -1, -1, -1,  1, -1,  1, -1, -1,  1, -1,  1]
     ```

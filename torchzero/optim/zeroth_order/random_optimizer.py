@@ -21,7 +21,6 @@ class RandomOptimizer(optim.Optimizer):
         stochastic = True,
         steps_per_sample = 1,
         foreach = True,
-        fast_sampling = False,
     ):
         """Random optimizer. Tries a step in a random direction, and goes there if loss decreases.
 
@@ -44,7 +43,6 @@ class RandomOptimizer(optim.Optimizer):
         super().__init__(params, defaults)
 
         self.foreach = foreach
-        self.fast_sampling = fast_sampling
         self.set_grad = set_grad
         self.opt = opt
         self.stochastic = stochastic
@@ -64,7 +62,7 @@ class RandomOptimizer(optim.Optimizer):
             petrubations_per_group: list[_foreach.TensorList] = []
             for idx, group in enumerate(self.param_groups):
                 params = get_group_params_tensorlist(group, with_grad=False, foreach=self.foreach)
-                group_petrubation = params.fastfn_like(group['sampler'], reuse = self.fast_sampling)
+                group_petrubation = params.fastfn_like(group['sampler'])
                 petrubations_per_group.append(group_petrubation)
                 params.add_(group_petrubation, alpha = group['magn'])
 

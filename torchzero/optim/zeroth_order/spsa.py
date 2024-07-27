@@ -23,7 +23,6 @@ class SPSA(optim.Optimizer):
         opt = None,
         avg_steps = 1,
         foreach = True,
-        fast_sampling = False,
     ):
         """Simultaneous perturbation stochastic approximation (SPSA), random direction stochastic approximation (RDSA), and two-step random search.
 
@@ -55,7 +54,6 @@ class SPSA(optim.Optimizer):
         super().__init__(params, defaults)
 
         self.foreach = foreach
-        self.fast_sampling = fast_sampling
         self.set_grad = set_grad
         self.opt = opt
         self.avg_steps = avg_steps
@@ -70,7 +68,7 @@ class SPSA(optim.Optimizer):
             petrubations_per_group: list[_foreach.TensorList] = []
             for group in self.param_groups:
                 params = get_group_params_tensorlist(group, with_grad=False, foreach=self.foreach)
-                group_petrubation = params.fastfn_like(group['sampler'], reuse = self.fast_sampling)
+                group_petrubation = params.fastfn_like(group['sampler'])
                 petrubations_per_group.append(group_petrubation)
                 if step == 1: params.add_(group_petrubation, alpha = group['magn'])
                 else: params.add_(group_petrubation, alpha = group['magn'] * 2)
@@ -113,7 +111,7 @@ class SPSA(optim.Optimizer):
             grads_per_group_per_step.append(this_step_grads_per_group)
 
         if self.avg_steps == 1: averaged_grads_per_group = grads_per_group_per_step[0]
-        else: averaged_grads_per_group = [_foreach.fastmean(i, foreach=self.foreach) for i in zip(*grads_per_group_per_step)]
+        else: averaged_grads_per_group = [_foreach.sequencemean(i, foreach=self.foreach) for i in zip(*grads_per_group_per_step)]
 
         # apply SPSA update
         for group, spsa_grad, last_petr in zip(self.param_groups, averaged_grads_per_group, petrubations_per_group): # type:ignore

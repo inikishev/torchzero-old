@@ -8,6 +8,7 @@ __all__ = [
     "SignGD",
     "BitGD",
     "SoftSignGD",
+    "RootGD",
 ]
 #region GD
 class GD(optim.Optimizer):
@@ -96,9 +97,7 @@ class BitGD(optim.Optimizer):
 #region SoftSignGD
 class SoftSignGD(optim.Optimizer):
     def __init__(self, params, lr, foreach = True):
-        """Softsign gradient descent. Halfway between normal gradient descent and sign gradient descent.
-        Uses softsign of the gradient to update the parameters,
-        which normalizes the amplitudes without completely discarding them like in sign gradient descent.
+        """Uses softsign of the gradient to update the parameters.
 
         Args:
             params (_type_): _description_
@@ -117,6 +116,32 @@ class SoftSignGD(optim.Optimizer):
         for group in self.param_groups:
             params, grads = get_group_params_and_grads_tensorlist(group, with_grad=True, foreach=self.foreach)
             params.sub_(grads.softsign(), alpha=group['lr'])
+        return loss
+#endregion
+
+#region RootGD
+class RootGD(optim.Optimizer):
+    def __init__(self, params, lr, root=2, foreach = True):
+        """Uses root of the gradient to update the parameters.
+
+        Args:
+            params (_type_): _description_
+            lr (_type_): _description_
+            root (_type_): _description_
+            foreach (bool, optional): _description_. Defaults to True.
+        """
+        super().__init__(params, dict(lr=lr, root=root))
+        self.foreach = foreach
+
+    @torch.no_grad
+    def step(self, closure=None): # type:ignore
+        loss = None
+        if closure is not None:
+            with torch.enable_grad(): loss = closure()
+
+        for group in self.param_groups:
+            params, grads = get_group_params_and_grads_tensorlist(group, with_grad=True, foreach=self.foreach)
+            params.sub_(grads.pow(group['root']).mul(grads.abs()), alpha=group['lr'])
         return loss
 #endregion
 

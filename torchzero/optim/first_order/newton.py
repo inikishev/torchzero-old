@@ -44,7 +44,7 @@ class NewtonsMethod(optim.Optimizer):
 
 #region Semi-Newton's
 class SemiNewton(optim.Optimizer):
-    def __init__(self, params, lr, threshold = 'loss', loss_multiplier = 1., fixed_value = 1., foreach=True,):
+    def __init__(self, params, lr, threshold = 'fixed', loss_multiplier = 1., fixed_value = 1., foreach=True,):
         """_summary_
 
         Args:

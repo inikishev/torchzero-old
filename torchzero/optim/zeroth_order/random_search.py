@@ -37,7 +37,7 @@ class RandomSearch(optim.Optimizer):
             for group in self.param_groups:
                 params = get_group_params_tensorlist(group, with_grad=False, foreach=self.foreach)
                 prev.append(params.clone())
-                params.set_(params.fastfn_like(group['sampler'], reuse = False))
+                params.set_(params.fastfn_like(group['sampler']))
 
             loss = closure()
 
@@ -80,7 +80,7 @@ class RandomAnnealing(optim.Optimizer):
             for group in self.param_groups:
                 params = get_group_params_tensorlist(group, with_grad=False, foreach=self.foreach)
                 prev.append(params.clone())
-                params.add_(params.fastfn_like(group['sampler'], reuse = False, ).mul(group['lr']))
+                params.add_(params.fastfn_like(group['sampler']).mul(group['lr']))
 
             loss = closure()
 
