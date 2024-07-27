@@ -15,8 +15,35 @@ def find_minimum_x_quadratic_numpy(x, y):
     return - coeffs[1] / (2 * coeffs[2])
 
 class QuadraticGDC(optim.Optimizer):
-    def __init__(self, params, lr, lr_mul = 0.01, max_dist = 8., discard_over = 8., distance_mul = 1., foreach=True, log_minimum_x = False):
+    def __init__(
+        self,
+        params,
+        lr,
+        lr_mul=0.01,
+        max_dist=8.0,
+        discard_over=8.0,
+        distance_mul=1.0,
+        foreach=True,
+        log_minimum_x=False,
+    ):
+        """Quadratic gradient direction curvature optimizer.
 
+        This does two forward passes and one backward per step, obtaining three points.
+        Those points are then used to fit a second order polynomial,
+        which represents directional curvature in the direction of antigradient.
+        If curvature is positive and not too small, a step is made to the minimum of the polynomial.
+        Otherwise this does one SGD-like step.
+
+        Args:
+            params (_type_): _description_
+            lr (_type_): This functions as both learning rate and distance to evaluate the loss again for polynomial fitting.
+            lr_mul (float, optional): Epsilon for approximating loss very close the initial point using gradients will be `lr * lr_mul`. Defaults to 0.01.
+            max_dist (float, optional): Clips the distance this can step towards polynomial minimum. Defaults to 8.0.
+            discard_over (float, optional): Discards polynomial if distance to minimum is larger than this, to avoid instability with very small curvatures. Defaults to 8.0.
+            distance_mul (float, optional): Multiplies the magnitude step towards polynomial minimum. Defaults to 1.0.
+            foreach (bool, optional): Makes it faster. Defaults to True.
+            log_minimum_x (bool, optional): Log distances to minimum to `log` attribute. Defaults to False.
+        """
         super().__init__(params, {})
         self.foreach = foreach
         self.max_dist = max_dist
