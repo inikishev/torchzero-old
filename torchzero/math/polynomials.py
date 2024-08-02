@@ -40,12 +40,13 @@ def fit_polynomial(x, y, degree, rcond=None, driver=None):
         return X @ W
     return polynomial
 
-
+@torch.no_grad
 def fit_polynomial_numpy(x, y, degree):
     """Way higher precision"""
     polynomial = np.polynomial.Polynomial.fit(x, y, degree)
     return polynomial.convert()
 
+@torch.no_grad
 def find_minimum_x_quadratic_numpy(x, y):
     coeffs = np.polynomial.Polynomial.fit(x, y, 2).convert().coef
     return - coeffs[1] / (2 * coeffs[2])

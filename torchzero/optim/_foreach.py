@@ -19,24 +19,24 @@ ScalarOrAnySequence = PyNumber | TensorSequence | Any
 
 #region functions
 def add(self:TensorSequence, other:ScalarOrTensorOrAnySequence, *, alpha:PyNumber = 1, foreach:bool) -> TensorSequence:
-    if foreach: 
+    if foreach:
         if alpha == 1: return torch._foreach_add(self, other)
         return torch._foreach_add(self, other, alpha=alpha)
     return [torch.add(t1, t2, alpha=alpha) for t1, t2 in zip(self, other)]
 def add_(self:TensorSequence, other:ScalarOrTensorOrAnySequence, *, alpha:PyNumber = 1, foreach:bool) -> None:
-    if foreach: 
+    if foreach:
         if alpha == 1: return torch._foreach_add_(self, other)
         return torch._foreach_add_(self, other, alpha=alpha)
     for t1, t2 in zip(self, other): t1.add_(t2, alpha=alpha)
 
 
 def sub(self:TensorSequence, other:ScalarOrTensorOrAnySequence, *, alpha:PyNumber = 1, foreach:bool) -> TensorSequence:
-    if foreach: 
+    if foreach:
         if alpha == 1: return torch._foreach_sub(self, other)
         return torch._foreach_sub(self, other, alpha=alpha)
     return [torch.sub(t1, t2, alpha=alpha) for t1, t2 in zip(self, other)]
 def sub_(self:TensorSequence, other:ScalarOrTensorOrAnySequence, *, alpha:PyNumber = 1, foreach:bool) -> None:
-    if foreach: 
+    if foreach:
         if alpha == 1: return torch._foreach_sub_(self, other)
         return torch._foreach_sub_(self, other, alpha=alpha)
     for t1, t2 in zip(self, other): t1.sub_(t2, alpha=alpha)
@@ -296,6 +296,20 @@ class TensorList(list[Tensor]):
 
     def sum(self): return sum([i.sum() for i in self])
     def mean(self): return sum([i.mean() for i in self]) / len(self)
+    def max(self): return max([i.max() for i in self])
+    def min(self): return min([i.min() for i in self])
+    def unique(self, sorted=True, return_inverse=False, return_counts=False):
+        """Returns the unique elements of this tensor list.
+
+        Args:
+            sorted (bool, optional): _description_. Defaults to True.
+            return_inverse (bool, optional): _description_. Defaults to False.
+            return_counts (bool, optional): _description_. Defaults to False.
+
+        Returns:
+            _type_: _description_
+        """
+        return torch.cat([i.ravel() for i in self]).unique(sorted=sorted, return_inverse=return_inverse, return_counts=return_counts)
 
     def softsign(self): return TensorList(softsign(self, foreach=self.foreach), foreach=self.foreach)
 
@@ -303,8 +317,8 @@ class TensorList(list[Tensor]):
     def clamp_min_(self, other: ScalarOrAnySequence): clamp_min_(self, other, foreach=self.foreach)
     def clamp_max(self, other: ScalarOrAnySequence): return TensorList(clamp_max(self, other, foreach=self.foreach), foreach=self.foreach)
     def clamp_max_(self, other: ScalarOrAnySequence): clamp_max_(self, other, foreach=self.foreach)
-    
-    
+
+
     def fastrand_like(self): return TensorList(rand_like(self, foreach=self.foreach), foreach=self.foreach)
     def fastrandn_like(self): return TensorList(randn_like(self, foreach=self.foreach), foreach=self.foreach)
     def fastrademacher_like(self): return TensorList(rademacher_like(self, foreach=self.foreach), foreach=self.foreach)

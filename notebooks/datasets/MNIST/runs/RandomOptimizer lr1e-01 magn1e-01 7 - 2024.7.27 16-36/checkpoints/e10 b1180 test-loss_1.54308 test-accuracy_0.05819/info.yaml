@@ -1,0 +1,34 @@
+name: RandomOptimizer lr1e-01 magn1e-01
+current batch: 19
+total batches: 1180
+current epoch: 9
+total epochs: 10
+status: test
+model class: __main__.SLP
+optimizer class: accelerate.optimizer.AcceleratedOptimizer
+scheduler class: NoneType
+loss_fn class: torch.nn.modules.loss.CrossEntropyLoss
+accelerator class: accelerate.accelerator.Accelerator
+device: cuda
+
+callbacks:
+   - glio.train.metrics.metrics_basic.LogLossCB
+   - glio.train.cbs_hooks.SaveForwardChannelImagesCB
+   - glio.train.metrics.metrics_basic.MetricAccuracyCB
+   - glio.train.cbs_updatestats.LogParamDistCB
+   - glio.train.cbs_updatestats.LogParamPathCB
+   - glio.train.cbs_updatestats.LogUpdateDistCB
+   - glio.train.cbs_updatestats.LogUpdatePathCB
+   - glio.train.cbs_updatestats.LogLastUpdatesAngleCB
+   - glio.train.cbs_updatestats.LogGradDistCB
+   - glio.train.cbs_updatestats.LogGradUpdateAngleCB
+   - glio.train.cbs_updatestats.LogGradPathCB
+   - glio.train.cbs_updatestats.LogLastGradsAngleCB
+   - glio.train.cbs_log.LogTimeCB
+   - glio.train.cbs_summary.DisplayLoggerTableCB
+   - glio.train.cbs_accelerate.AccelerateCB
+   - glio.train.cbs_performance.PerformanceTweaksCB
+   - glio.train.cbs_save.SaveLastCB
+   - glio.train.cbs_liveplot.LivePlotCB
+   - glio.train.cbs_simpleprogress.SimpleProgressBarCB
+   - glio.train.cbs_default_overrides.OneBatchClosureCB

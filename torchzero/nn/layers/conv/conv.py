@@ -144,7 +144,7 @@ class ConvTransposeBlock(Sequential):
         dilation: int = 1,
         norm: Optional[torch.nn.Module | str | bool | Callable] = None,
         dropout: Optional[float | torch.nn.Module | Callable] = None,
-        act: Optional[torch.nn.Module | Callable] = None,
+        act: Optional[torch.nn.Module | Callable | str] = None,
         upsample: Optional[float | torch.nn.Module | Callable] = None,
         pool: Optional[int | torch.nn.Module | Callable] = None,
         ndim: int = 2,

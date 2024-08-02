@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from typing import Optional, Literal
-
+import logging
 import torch
 from torch import optim
 from ..utils import get_group_params_tensorlist, get_group_params_and_grads_tensorlist
@@ -17,12 +17,14 @@ class SPSA(optim.Optimizer):
         lr:Optional[float] = 1e-3,
         magn:float = 1e-5,
         max_diff: Optional[float] = 1e-2,
+        min_diff: Optional[float] = 1e-8,
         sampler:Callable = rademacher,
         variant:Literal['SPSA', "RDSA", "2step"] = 'SPSA',
         set_grad = False,
         opt = None,
         avg_steps = 1,
         foreach = True,
+        verbose=False,
     ):
         """Simultaneous perturbation stochastic approximation (SPSA), random direction stochastic approximation (RDSA), and two-step random search.
 
@@ -50,13 +52,15 @@ class SPSA(optim.Optimizer):
         if set_grad is False and opt is not None: raise ValueError("opt can only be used with set_grad=True")
         if lr is None and not set_grad: raise ValueError("lr must be specified if set_grad=False")
 
-        defaults = dict(lr=lr, magn=magn, sampler=sampler, variant=variant, max_diff=max_diff)
+        defaults = dict(lr=lr, magn=magn, sampler=sampler, variant=variant, min_diff = min_diff, max_diff=max_diff)
         super().__init__(params, defaults)
 
         self.foreach = foreach
         self.set_grad = set_grad
         self.opt = opt
         self.avg_steps = avg_steps
+
+        self.verbose = verbose
 
     @torch.no_grad
     def step(self, closure:Callable): # pylint:disable=W0222 # type:ignore
@@ -95,8 +99,12 @@ class SPSA(optim.Optimizer):
                 dloss = loss_pos - loss_neg
                 if max_diff is not None and abs(dloss) > max_diff: dloss = max_diff * (1 if dloss > 0 else -1)
 
+                if self.verbose: print(f'{loss_pos = }, {loss_neg = }, {dloss = }')
+
                 # apply the formula
                 if variant == 'SPSA':
+                    if self.verbose: print(f'{petrubation.unique(False)}')
+                    if self.verbose: print(f'{petrubation.pow(-1).max() = }')
                     this_step_grads_per_group.append(petrubation.pow(-1.).mul(dloss / (2 * group['magn'])))
 
                 elif variant == 'RDSA':

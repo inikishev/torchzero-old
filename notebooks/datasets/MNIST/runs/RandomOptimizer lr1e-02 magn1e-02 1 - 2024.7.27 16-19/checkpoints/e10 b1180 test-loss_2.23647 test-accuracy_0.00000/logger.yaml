@@ -1,0 +1,188 @@
+grad path mean:
+    count: 1180
+    type: <class 'list'>
+
+grad std:
+    count: 1180
+    type: <class 'torch.Tensor'>
+    last value: 0.0005327879916876554
+    lowest: 0.00011564628221094608
+    highest: 0.0073265437968075275
+    mean: 0.00041961087845265865
+
+grad-update angle:
+    count: 1180
+    type: <class 'torch.Tensor'>
+    last value: 1.6331655979156494
+    lowest: 1.068320631980896
+    highest: 2.3403372764587402
+    mean: 1.6632851362228394
+
+grad-update mean:
+    count: 1180
+    type: <class 'torch.Tensor'>
+    last value: 0.00022348716447595507
+    lowest: 5.65165355510544e-05
+    highest: 0.0033557850401848555
+    mean: 0.00019665996660478413
+
+last grads mean:
+    count: 1179
+    type: <class 'torch.Tensor'>
+    last value: 0.00018546931096352637
+    lowest: 3.7191977753536776e-05
+    highest: 0.0026015068870037794
+    mean: 0.0001353080297121778
+
+last updates std:
+    count: 1179
+    type: <class 'torch.Tensor'>
+    last value: 3.8046450754336547e-06
+    lowest: 5.906316005166445e-07
+    highest: 0.00848826952278614
+    mean: 5.037371738580987e-05
+
+param max:
+    count: 1180
+    type: <class 'torch.Tensor'>
+    last value: 0.3196945786476135
+    lowest: 0.24757398664951324
+    highest: 0.3264065086841583
+    mean: 0.2727776765823364
+
+param mean:
+    count: 1180
+    type: <class 'torch.Tensor'>
+    last value: 0.0004101623489987105
+    lowest: 0.00014475251373369247
+    highest: 0.001740336767397821
+    mean: 0.0004458948678802699
+
+param min:
+    count: 1180
+    type: <class 'torch.Tensor'>
+    last value: -0.2489296942949295
+    lowest: -0.25042110681533813
+    highest: -0.24675440788269043
+    mean: -0.24847877025604248
+
+param path mean:
+    count: 1180
+    type: <class 'list'>
+
+param var:
+    count: 1180
+    type: <class 'torch.Tensor'>
+    last value: 0.0024795166682451963
+    lowest: 0.002173652173951268
+    highest: 0.0024803010746836662
+    mean: 0.0022583731915801764
+
+test accuracy:
+    count: 11
+    type: <class 'numpy.float64'>
+    last value: 0.0
+    lowest: 0.0
+    highest: 0.0
+    mean: 0.0
+
+test accuracy max:
+    count: 11
+    type: <class 'numpy.float64'>
+    last value: 0.0
+    lowest: 0.0
+    highest: 0.0
+    mean: 0.0
+
+test accuracy median:
+    count: 11
+    type: <class 'numpy.float64'>
+    last value: 0.0
+    lowest: 0.0
+    highest: 0.0
+    mean: 0.0
+
+test accuracy min:
+    count: 11
+    type: <class 'numpy.float64'>
+    last value: 0.0
+    lowest: 0.0
+    highest: 0.0
+    mean: 0.0
+
+test loss:
+    count: 11
+    type: <class 'numpy.float64'>
+    last value: 2.236474132537842
+    lowest: 2.236474132537842
+    highest: 2.3456083059310915
+    mean: 2.2873957861553538
+
+test loss max:
+    count: 11
+    type: <class 'numpy.float64'>
+    last value: 2.2596490383148193
+    lowest: 2.2596490383148193
+    highest: 2.3583226203918457
+    mean: 2.2953998392278496
+
+test loss median:
+    count: 11
+    type: <class 'numpy.float64'>
+    last value: 2.2374119758605957
+    lowest: 2.2373106479644775
+    highest: 2.345661163330078
+    mean: 2.28765886480158
+
+test loss min:
+    count: 11
+    type: <class 'numpy.float64'>
+    last value: 2.2160186767578125
+    lowest: 2.2160186767578125
+    highest: 2.323953151702881
+    mean: 2.2794119228016245
+
+time:
+    count: 1180
+    type: <class 'float'>
+    last value: 90.21837749984115
+    lowest: 2.3391024000011384
+    highest: 90.21837749984115
+    mean: 46.167639171811594
+
+train accuracy:
+    count: 1180
+    type: <class 'float'>
+    last value: 0.0
+    lowest: 0.0
+    highest: 0.0
+    mean: 0.0
+
+train loss:
+    count: 1180
+    type: <class 'float'>
+    last value: 2.259711742401123
+    lowest: 2.171329975128174
+    highest: 2.356043815612793
+    mean: 2.28158807532262
+
+update angle:
+    count: 1180
+    type: <class 'torch.Tensor'>
+    last value: 0.00010703482257667929
+    lowest: 2.3310474716708995e-05
+    highest: 0.18796929717063904
+    mean: 0.0007367029320448637
+
+update path mean:
+    count: 1180
+    type: <class 'list'>
+
+update var:
+    count: 1180
+    type: <class 'torch.Tensor'>
+    last value: 2.3420395831030838e-11
+    lowest: 1.0313205367831757e-12
+    highest: 7.675285451114178e-05
+    mean: 1.4029765793566185e-07
+

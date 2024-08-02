@@ -21,7 +21,7 @@ class LinearBlock(Sequential):
         bias: bool = True,
         norm: Optional[torch.nn.Module | str | bool | Callable] = None,
         dropout: Optional[float | torch.nn.Module | Callable] = None,
-        act: Optional[torch.nn.Module | Callable] = None,
+        act: Optional[torch.nn.Module | Callable | str] = None,
         flatten: bool | Sequence[int] = False,
         custom_op = None,
         order = 'FLAND',

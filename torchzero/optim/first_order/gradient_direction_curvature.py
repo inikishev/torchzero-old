@@ -88,7 +88,7 @@ class QuadraticGDC(optim.Optimizer):
             all_grads.extend(grads)
 
         # approximate y after making a tiny step in the direction of the gradient
-        y_epsilon = y - all_grads.pow(2).sum() * eps
+        y_epsilon = (y - all_grads.pow(2).sum() * eps).detach().cpu()
 
         # make a big step in the direction of the antigradient
         all_params.sub_(all_grads, alpha = self.lr)

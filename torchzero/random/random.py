@@ -39,7 +39,8 @@ def rademacher(shape, p=0.5, device=None, requires_grad = False, dtype=None):
     [-1,  1,  1, -1, -1,  1, -1,  1,  1, -1, -1, -1,  1, -1,  1, -1, -1,  1, -1,  1]
     ```
     """
-    return (torch.rand(shape, dtype=dtype, device=device, requires_grad=requires_grad) - p).sign()
+    if isinstance(shape, int): shape = (shape, )
+    return torch.bernoulli(torch.full(shape, p, dtype=dtype, device=device, requires_grad=requires_grad)) * 2 - 1
 
 def rademacher_like(x:torch.Tensor, p=0.5, ):
     """100p% to draw a -1 and 100(1-p)% to draw a 1. Looks like this:

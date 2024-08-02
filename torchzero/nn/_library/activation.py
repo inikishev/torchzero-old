@@ -15,6 +15,7 @@ def create_act(module:Any, num_channels:Optional[int], ndim:Optional[int], spati
     if isinstance(module, str): module = ''.join([i for i in module.lower().strip() if i.isalnum()])
 
     if module in ('relu',): return torch.nn.ReLU(inplace=True)
+    if module in ('reluinplacefalse',): return torch.nn.ReLU(inplace=False)
     if module in ('leakyrelu',): return torch.nn.LeakyReLU(0.1, inplace=True)
     if module in ('prelu',): return torch.nn.PReLU(num_parameters=num_channels if num_channels is not None else 1)
     if module in ('rrelu',): return torch.nn.RReLU(inplace=True)
