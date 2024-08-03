@@ -127,11 +127,18 @@ def _foreach_param(param_groups):
         for param in group["params"]:
             if param.requires_grad: yield param
 
+def _foreach_group_param(param_groups):
+    for group in param_groups:
+        for param in group["params"]:
+            if param.requires_grad: yield group, param
+            
 class GridSearch(Optimizer):
-    def __init__(self, params, domain: tuple[float, float], step:float):
-        """Grid search.
+    def __init__(self, params, domain: tuple[float, float] | Sequence, step:Optional[float] = None):
+        """A more convenient form of grid search.
         Tries every combination of parameters possible.
-        After trying all combinations this will halve the step size and restart.
+        After trying all combinations this will halve the step size and restart, while making sure not to try same combination twice.
+        As a result, you don't have to worry about setting `step` and appropriate number of iterations, 
+        since it will evenly explore the search space with more and more precision regardless of how many iterations you run it for.
 
         This evaluates closure once per step.
 
@@ -160,11 +167,12 @@ class GridSearch(Optimizer):
         steps = []
         for group in self.param_groups:
             domains.append(group["domain"])
+            if group['step'] is None: group['step'] = (group["domain"][1] - group["domain"][0]) / 2
             steps.append(group["step"])
+            group['add_term'] = 0
 
         self._param_combinations_generator = _gridsearch_param_combinations([p.numel() for p in _foreach_param(self.param_groups)], steps, domains)
         self._sizes = [p.size() for p in _foreach_param(self.param_groups)]
-
 
     @torch.no_grad
     def step(self, closure:Callable): # type:ignore #pylint:disable=W0222
@@ -191,15 +199,24 @@ class GridSearch(Optimizer):
             domains = []
             steps = []
             for group in self.param_groups:
-                domains.append(group["domain"])
-                group["step"] /= 2
+                # set step if None
+                if group['step'] is None: group['step'] = (group["domain"][1] - group["domain"][0]) / 2
+                # divide step by two for next set of iterations
+                else: group["step"] /= 2
+                # we add step * 0.5 to parameters to make sure we don't try same parameters twice
+                group['add_term'] = group['step'] / 2
                 steps.append(group["step"])
+                # since we add step * 0.5, we make domain that much smaller to make sure we don't get out of the bounds
+                domain = [float(i) for i in group['domain']]; domain[1] -= group['add_term']
+                domains.append(domain)
                 self._param_combinations_generator = _gridsearch_param_combinations([p.numel() for p in _foreach_param(self.param_groups)], steps, domains)
+
             return self.lowest_loss
 
+
         # copy gridsearch params
-        for i,p in enumerate(_foreach_param(self.param_groups)):
-            p.copy_(flat_params[i].view(self._sizes[i]))
+        for i,(g, p) in enumerate(_foreach_group_param(self.param_groups)):
+            p.set_(flat_params[i].view(self._sizes[i]) + g['add_term'])
 
         # test new params
         loss = closure()
@@ -212,6 +229,7 @@ class GridSearch(Optimizer):
         else:
             for p in _foreach_param(self.param_groups): p.copy_(self.state[p]['best'])
 
+        self.n_steps += 1
         return loss
 
 class SequentialSearch(Optimizer):
