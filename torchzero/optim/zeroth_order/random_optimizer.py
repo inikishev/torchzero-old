@@ -1,5 +1,6 @@
 from collections.abc import Callable
-from typing import Optional
+from typing import Optional, cast
+from itertools import count
 import torch
 from torch import optim
 from ..utils import get_group_params_tensorlist, get_group_params_and_grads_tensorlist
@@ -12,10 +13,10 @@ class RandomOptimizer(optim.Optimizer):
     def __init__(
         self,
         params,
-        lr:Optional[float] = 1e-3,
-        magn:Optional[float] = None,
+        lr:float = 1e-3,
         step_back = False,
         sampler = torch.randn,
+        best_of = 1,
         set_grad = False,
         opt = None,
         stochastic = True,
@@ -35,80 +36,94 @@ class RandomOptimizer(optim.Optimizer):
             steps_per_sample (int, optional): Does multiple steps per sample, which is efficient because it does one initial evaluation + only one evaluation per step. Not useful if `stochastic` is False. Defaults to 1.
             foreach (bool, optional): Use `foreach` operations which makes it much faster (the random generator will generate different tensors with and without this!). Defaults to True.
         """
-        if lr is None and magn is None: raise ValueError("Either lr or magn must be specified.")
-        if magn is None: magn = lr
         if set_grad is False and opt is not None: raise ValueError("opt can only be used with set_grad=True")
 
-        defaults = dict(lr=lr, magn=magn, step_back=step_back, sampler=sampler)
+        defaults = dict(lr=lr, step_back=step_back, sampler=sampler)
         super().__init__(params, defaults)
 
         self.foreach = foreach
         self.set_grad = set_grad
         self.opt = opt
         self.stochastic = stochastic
+
+        if best_of < 1: raise ValueError(f"best_of must be at least 1, got {best_of}")
+        self.best_of = best_of
+
+        if steps_per_sample < 1: raise ValueError(f"steps_per_sample must be at least 1, got {steps_per_sample}")
+        # step back means model steps in the opposite way, where loss might be higher, so lowest_loss would no longer be relevant
+        if step_back and not stochastic: raise ValueError("step_back can only be used with stochastic=True")
         self.steps_per_sample = steps_per_sample
 
+        self.current_step = 0
         self.lowest_loss = float('inf')
 
     @torch.no_grad
     def step(self, closure:Callable): # pylint:disable=W0222 # type:ignore
         # if stochastic, evaluate  loss on each step
-        if self.stochastic: self.lowest_loss = closure()
+        if self.stochastic or self.current_step == 0: self.lowest_loss = closure()
 
-        # we can do multiple steps per sample, only evaluating once per step
-        for step in range(self.steps_per_sample):
+        groups_params = [(g, get_group_params_tensorlist(g, with_grad=False, foreach=self.foreach)) for g in self.param_groups]
 
-            # create petrubations and apply them
-            petrubations_per_group: list[_foreach.TensorList] = []
-            for idx, group in enumerate(self.param_groups):
-                params = get_group_params_tensorlist(group, with_grad=False, foreach=self.foreach)
-                group_petrubation = params.fn_like(group['sampler'])
-                petrubations_per_group.append(group_petrubation)
-                params.add_(group_petrubation, alpha = group['magn'])
+        for _ in range(self.steps_per_sample):
 
-            # evaluate new loss
-            loss = closure()
+            petrubations_per_group = cast(list[_foreach.TensorList], None)
+            best_petrubations_per_group = cast(list[_foreach.TensorList], None) # make it iterable
+            loss_improved = False
 
-            # loss is lower
-            if loss < self.lowest_loss:
-                self.lowest_loss = loss
-                # undo the petrubation and set grad attribute if set_grad
-                for group, petrubation in zip(self.param_groups, petrubations_per_group):
-                    if self.set_grad:
-                        params, grads = get_group_params_and_grads_tensorlist(group, with_grad=False, foreach=self.foreach)
-                        # undo the petrubation
-                        params.sub_(petrubation, alpha=group['magn'])
-                        # accumulate gradients
-                        grads.sub_(petrubation)
+            for bestof_iter in range(self.best_of):
+                petrubations_per_group: list[_foreach.TensorList] = []
+                iter_is_best = False
+                for group, params in groups_params:
+                    # generate petrubations
+                    petrubation = params.fn_like(group['sampler']).mul(group['lr'])
+                    petrubations_per_group.append(petrubation)
+                    # apply it
+                    params.add_(petrubation)
 
-                    # if lr and magnitude are different, we subtract petrubation * (magn - lr) to convert magn to lr.
-                    elif group['lr'] != group['magn']:
-                        params = get_group_params_tensorlist(group, with_grad=False, foreach=self.foreach)
-                        params.sub_(petrubation, alpha=group['magn'] - group['lr'])
+                # evaluate new loss
+                loss = closure()
 
-                    # else we don't do anything, params are already updated with correct lr = magn
+                # if loss improved
+                if loss < self.lowest_loss:
+                    self.lowest_loss = loss
+                    best_petrubations_per_group = petrubations_per_group
+                    loss_improved = True
+                    iter_is_best = True
 
-            # loss is bigger
-            else:
-                # undo the petrubation
-                for group, petrubation in zip(self.param_groups, petrubations_per_group):
-
-                    # undo the petrubation and set grad attribute to petrubation or zeroes depending on step_back
-                    if self.set_grad:
-                        params, grads = get_group_params_and_grads_tensorlist(group, with_grad=False, foreach=self.foreach)
-                        # undo the petrubation
-                        params.sub_(petrubation, alpha=group['magn'])
-                        # accumulate gradients
-                        if group['step_back']: grads.add_(petrubation)
-                        # else gradients are 0
-
-                    # or undo the petrubation and step back if step_back
+                if best_petrubations_per_group is None: best_petrubations_per_group = petrubations_per_group
+                for (group, params), last_petrubation, best_petrubation in zip(groups_params, petrubations_per_group, best_petrubations_per_group):
+                    # restore params if not last iteration
+                    if bestof_iter != self.best_of - 1: params.sub_(last_petrubation)
+                    # after last iteration apply best petrubation
                     else:
-                        params = get_group_params_tensorlist(group, with_grad=False, foreach=self.foreach)
-                        # if step back, go opposite way (magn undoes the petrubation and lr does the step)
-                        if group['step_back']: params.sub_(petrubation, alpha=group['magn'] + group['lr'])
-                        # else just undo the step
-                        else: params.sub_(petrubation, alpha=group['magn'])
+                        # use as gradient approx
+                        if self.set_grad:
+                            # we do this again because it creates grad
+                            _, grads = get_group_params_and_grads_tensorlist(group, with_grad=False, foreach=self.foreach)
+                            # restore params
+                            params.sub_(last_petrubation)
+                            # accumulate gradients
+                            if loss_improved: grads.sub_(best_petrubation)
+                            elif group['step_back']: grads.add_(best_petrubation)
+                        # use as optimizer
+                        else:
+                            # if one of the petrubations is better
+                            # print(f'{self.lowest_loss = }, {loss = }, {loss_improved = }, {iter_is_best = }, {last_petrubation = }, {best_petrubation = }')
+                            if loss_improved:
+                                # if the best petrubation isn't the last one that is already applied
+                                if not iter_is_best:
+                                    # undo last petrubation and apply best one
+                                    params.sub_(last_petrubation)
+                                    params.add_(best_petrubation)
+                            # no petrubations are better, if step back, go opposite way
+                            elif group['step_back']:
+                                # we go opposite of last petrubation, which is typically the only one anyway
+                                params.sub_(last_petrubation.mul(2))
+                            else:
+                                # we undo petrubation
+                                params.sub_(last_petrubation)
+
 
         if self.opt is not None: self.opt.step()
+        self.current_step += 1
         return loss # type:ignore

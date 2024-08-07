@@ -9,6 +9,7 @@ from ...random.random import Uniform, uniform
 __all__ = [
     'RandomSearch',
     'RandomAnnealing',
+    'AcceleratedRandomSearch',
 ]
 
 class RandomSearch(optim.Optimizer):
