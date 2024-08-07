@@ -13,27 +13,17 @@ class SimulatedAnnealing(optim.Optimizer):
     def __init__(
         self,
         params,
-        cooling_steps: int,
         lr:float = 1e-3,
         init_temp = 0.1,
+        temp_mul = 0.9,
+        iter_per_cool = 500,
+        max_bad_iter = 50,
         sampler = torch.randn,
         stochastic = True,
         steps_per_sample = 1,
         foreach = True,
+        log_temperature = False,
     ):
-        """Moves to better parameters, and has a chance to move to worse parameters based on temperature, to escape local minima.
-
-        Args:
-            params (_type_): _description_
-            cooling_steps (int): Temperature will linearly decay to 0 over this many steps.
-            lr (float, optional): Learning rate. Defaults to 1e-3.
-            init_temp (float, optional): Initial temperature. Defaults to 0.1.
-            sampler (_type_, optional): Random sampler. Defaults to torch.randn.
-            stochastic (bool, optional): _description_. Defaults to True.
-            steps_per_sample (int, optional): _description_. Defaults to 1.
-            foreach (bool, optional): _description_. Defaults to True.
-        """
-
         defaults = dict(lr=lr, sampler=sampler)
         super().__init__(params, defaults)
 
@@ -43,9 +33,17 @@ class SimulatedAnnealing(optim.Optimizer):
         self.temperature  = init_temp
         self.max_temperature = init_temp
 
-        self.cooling_steps = cooling_steps
+        self.temp_mul = temp_mul
+        self.iter_per_cool = iter_per_cool
+        self.max_bad_iter = max_bad_iter
+
         self.current_step = 0
         self.lowest_loss = float('inf')
+        self.global_lowest_loss = float('inf')
+        self.bad_streak = 0
+
+        self.log_temperature = log_temperature
+        self.temperature_history = []
 
     @torch.no_grad
     def step(self, closure:Callable): # pylint:disable=W0222 # type:ignore
@@ -67,20 +65,106 @@ class SimulatedAnnealing(optim.Optimizer):
             # evaluate new loss
             loss = closure()
 
-            if loss < self.lowest_loss: probability = 1
-            else: 
-                probability = math.exp((self.lowest_loss - loss) / self.temperature)
+            if loss < self.global_lowest_loss:
+                self.global_lowest_loss = loss
+                self.bad_streak = 0
 
             # loss is lower or chance to go to a higher loss
-            if loss < self.lowest_loss or random.random() < probability:
+            if loss < self.lowest_loss or random.random() < math.exp((self.lowest_loss - loss) / self.temperature):
                 self.lowest_loss = loss
 
             else:
-                # revert petrubations
                 for (group, params), petrubation in zip(groups_params, petrubations_per_group):
                     params.sub_(petrubation)
 
-        self.heat = self.max_temperature * (1 - self.current_step / self.cooling_steps)
+        self.current_step += 1
+        if self.current_step % self.iter_per_cool == 0: self.temperature *= self.temp_mul
+        if self.bad_streak > self.max_bad_iter:
+            self.temperature *= self.temp_mul
+            self.bad_streak = 0
+        else: self.bad_streak += 1
+
+        if self.log_temperature: self.temperature_history.append(self.temperature)
+        return loss # type:ignore
+
+
+
+class ThresholdAccepting(optim.Optimizer):
+    def __init__(
+        self,
+        params,
+        lr:float = 1e-3,
+        init_threshold = 0.1,
+        threshold_mul = 0.9,
+        iter_per_decay = 500,
+        max_bad_iter = 50,
+        sampler = torch.randn,
+        stochastic = True,
+        steps_per_sample = 1,
+        foreach = True,
+        log_threshold = False,
+    ):
+
+        defaults = dict(lr=lr, sampler=sampler)
+        super().__init__(params, defaults)
+
+        self.foreach = foreach
+        self.stochastic = stochastic
+        self.steps_per_sample = steps_per_sample
+        self.threshold  = init_threshold
+        self.max_threshold = init_threshold
+
+        self.threshold_mul = threshold_mul
+        self.iter_per_decay = iter_per_decay
+        self.max_bad_iter = max_bad_iter
+
+        self.current_step = 0
+        self.lowest_loss = float('inf')
+        self.global_lowest_loss = float('inf')
+        self.bad_streak = 0
+
+        self.log_threshold = log_threshold
+        self.threshold_history = []
+
+    @torch.no_grad
+    def step(self, closure:Callable): # pylint:disable=W0222 # type:ignore
+        # if stochastic, evaluate  loss on each step
+        if self.stochastic or self.current_step == 0: self.lowest_loss = closure()
+
+        groups_params = [(g, get_group_params_tensorlist(g, with_grad=False, foreach=self.foreach)) for g in self.param_groups]
+
+        # we can do multiple steps per sample, only evaluating once per step
+        for step in range(self.steps_per_sample):
+
+            # create petrubations and apply them
+            petrubations_per_group: list[_foreach.TensorList] = []
+            for group, params in groups_params:
+                group_petrubation = params.fn_like(group['sampler']).mul(group['lr'])
+                petrubations_per_group.append(group_petrubation)
+                params.add_(group_petrubation)
+
+            # evaluate new loss
+            loss = closure()
+
+            if loss < self.global_lowest_loss:
+                self.global_lowest_loss = loss
+                self.bad_streak = 0
+
+            # loss is lower or chance to go to a higher loss
+            if loss < self.lowest_loss + self.threshold:
+                self.lowest_loss = loss
+
+            else:
+                for (group, params), petrubation in zip(groups_params, petrubations_per_group):
+                    params.sub_(petrubation)
 
         self.current_step += 1
+        if self.current_step % self.iter_per_decay == 0: self.threshold *= self.threshold_mul
+        if self.bad_streak > self.max_bad_iter:
+            self.threshold *= self.threshold_mul
+            self.bad_streak = 0
+        else: self.bad_streak += 1
+
+        if self.log_threshold: self.threshold_history.append(self.threshold)
         return loss # type:ignore
+
