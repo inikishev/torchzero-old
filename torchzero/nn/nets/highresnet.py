@@ -9,7 +9,7 @@ from ..cubes.chain import ChainCube, StraightAndResizeCube, SequenceCube, _gener
 from ..cubes.skip import SkipCube, SkipLiteral
 from ..cubes.identity import IdentityCube
 from ..cubes._utils import unsupported_by_this_cube, partial_seq, CubePartial, partial_ignore
-from ..layers.pad import pad_to_channels_like
+from ..functional.pad import pad_to_channels_like
 
 HighResBlock = ResidualCube.partial(
     cube=[ConvCube.partial(

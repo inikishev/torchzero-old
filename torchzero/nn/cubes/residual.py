@@ -7,7 +7,7 @@ import numpy as np
 import torch
 
 from ..layers.func import ensure_module
-from ..layers.pad import pad_like
+from ..functional.pad import pad_like
 from .skip import SkipCube, SkipLiteral
 from ._utils import partial_seq, unsupported_by_this_cube
 

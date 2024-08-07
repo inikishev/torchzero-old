@@ -10,7 +10,7 @@ from .._library.activation import create_act
 from .._library.upsample import create_upsample
 from .._library.flatten import create_flatten
 from .sequential import Sequential
-from .pad import pad_like
+from ..functional.pad import pad_like
 from .func import func_to_named_module
 
 __all__ = [

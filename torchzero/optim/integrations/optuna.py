@@ -5,13 +5,17 @@ import optuna
 
 from ..zeroth_order.grid_search import _gridsearch_param_combinations
 
-class AutoGridSearch(optuna.samplers.BaseSampler):
+class GridSearch(optuna.samplers.BaseSampler):
     """Sampler using a more convenient form of grid search.
 
     Tries every combination of parameters possible.
     After trying all combinations this will halve the step size and restart, while making sure not to try same combination twice.
     As a result, you don't have to worry about setting `step` and appropriate number of iterations,
     since it will evenly explore the search space with more and more precision regardless of how many iterations you run it for.
+
+    This supports int, float and categorical variables (not log yet).
+
+    This is a optuna sampler version of `GridSearch` optimizer.
 
     """
     def __init__(self):

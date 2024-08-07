@@ -3,7 +3,7 @@ from typing import Optional
 from collections.abc import Sequence, Callable
 import torch
 from .generic_block import _create_module_order
-from .pad import pad_like
+from ..functional.pad import pad_like
 from .sequential import Sequential
 
 from .._library.activation import create_act

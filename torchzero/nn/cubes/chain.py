@@ -7,7 +7,7 @@ import numpy as np
 import torch
 
 from ..layers.func import ensure_module
-from ..layers.pad import pad_like
+from ..functional.pad import pad_like
 from ..layers.sequential import Sequential
 from ._utils import partial_seq, _snap_int, _get_partial_from_locals, CubePartial, unsupported_by_this_cube
 

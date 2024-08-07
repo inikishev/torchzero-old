@@ -9,7 +9,7 @@ from ..cubes.chain import ChainCube, StraightAndResizeCube, SequenceCube, _gener
 from ..cubes.skip import SkipCube, SkipLiteral, SaveCube, PassAndSkipCube
 from ..cubes.identity import IdentityCube
 from ..cubes._utils import unsupported_by_this_cube, partial_seq, CubePartial
-from ..layers.pad import pad_to_channels_like
+from ..functional.pad import pad_to_channels_like
 
 def _apply_overrides_(d:dict[int, Any] | list[Any], overrides: Mapping[int | slice, Any], apply_partial_seq = True):
     for k, v in overrides.items():

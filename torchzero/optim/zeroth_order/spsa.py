@@ -72,7 +72,7 @@ class SPSA(optim.Optimizer):
             petrubations_per_group: list[_foreach.TensorList] = []
             for group in self.param_groups:
                 params = get_group_params_tensorlist(group, with_grad=False, foreach=self.foreach)
-                group_petrubation = params.fastfn_like(group['sampler'])
+                group_petrubation = params.fn_like(group['sampler'])
                 petrubations_per_group.append(group_petrubation)
                 if step == 1: params.add_(group_petrubation, alpha = group['magn'])
                 else: params.add_(group_petrubation, alpha = group['magn'] * 2)

@@ -8,7 +8,7 @@ import numpy as np
 import torch
 
 from ..layers.func import ensure_module
-from ..layers.pad import pad_like, pad_to_channels_like
+from ..functional.pad import pad_like, pad_to_channels_like
 from ._utils import partial_seq, unsupported_by_this_cube, _get_partial_from_locals, CubePartial
 
 __all__ = [

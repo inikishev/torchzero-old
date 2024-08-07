@@ -14,7 +14,7 @@ class RandomOptimizer(optim.Optimizer):
         params,
         lr:Optional[float] = 1e-3,
         magn:Optional[float] = None,
-        step_back = True,
+        step_back = False,
         sampler = torch.randn,
         set_grad = False,
         opt = None,
@@ -62,7 +62,7 @@ class RandomOptimizer(optim.Optimizer):
             petrubations_per_group: list[_foreach.TensorList] = []
             for idx, group in enumerate(self.param_groups):
                 params = get_group_params_tensorlist(group, with_grad=False, foreach=self.foreach)
-                group_petrubation = params.fastfn_like(group['sampler'])
+                group_petrubation = params.fn_like(group['sampler'])
                 petrubations_per_group.append(group_petrubation)
                 params.add_(group_petrubation, alpha = group['magn'])
 

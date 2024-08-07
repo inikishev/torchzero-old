@@ -174,9 +174,9 @@ def rademacher_like(self:TensorSequence, *, foreach:bool) -> TensorSequence:
         return res
     else: return [_rademacher_like(t) for t in self]
 
-def fn_like(self:TensorSequence, fn:Callable, *, foreach:bool) -> TensorSequence:
+def fn_like(self:TensorSequence, fn:Callable, *args, foreach:bool, **kwargs) -> TensorSequence:
     if foreach:
-        vec = fn(sum([t.numel() for t in self]), device = self[0].device, dtype=self[0].dtype)
+        vec = fn(sum([t.numel() for t in self]), *args, **kwargs, device = self[0].device, dtype=self[0].dtype)
         res = []
         cur_idx = 0
         for t in self:
@@ -184,7 +184,7 @@ def fn_like(self:TensorSequence, fn:Callable, *, foreach:bool) -> TensorSequence
             res.append(vec[cur_idx : cur_idx + numel].reshape_as(t))
             cur_idx += numel
         return res
-    else: return [fn(t.shape, dtype=t.dtype, device=t.device) for t in self]
+    else: return [fn(t.shape, *args, **kwargs, dtype=t.dtype, device=t.device) for t in self]
 
 
 def zero_(self:TensorSequence, *, foreach:bool) -> None:
@@ -217,6 +217,13 @@ class TensorList(list[Tensor]):
     def __init__(self, tensors:Iterable[torch.Tensor], foreach:bool) -> None:
         super().__init__(tensors)
         self.foreach = foreach
+        
+    @property
+    def device(self): return self[0].device
+    @property
+    def dtype(self): return self[0].dtype
+    @property
+    def requires_grad(self): return self[0].requires_grad
 
     # no!!!!!!!!!
     def __add__(self, do_not_use): # type:ignore
@@ -319,10 +326,11 @@ class TensorList(list[Tensor]):
     def clamp_max_(self, other: ScalarOrAnySequence): clamp_max_(self, other, foreach=self.foreach)
 
 
-    def fastrand_like(self): return TensorList(rand_like(self, foreach=self.foreach), foreach=self.foreach)
-    def fastrandn_like(self): return TensorList(randn_like(self, foreach=self.foreach), foreach=self.foreach)
-    def fastrademacher_like(self): return TensorList(rademacher_like(self, foreach=self.foreach), foreach=self.foreach)
-    def fastfn_like(self, fn:Callable): return TensorList(fn_like(self, fn, foreach=self.foreach), foreach=self.foreach)
+    def rand_like(self): return TensorList(rand_like(self, foreach=self.foreach), foreach=self.foreach)
+    def randn_like(self): return TensorList(randn_like(self, foreach=self.foreach), foreach=self.foreach)
+    def rademacher_like(self): return TensorList(rademacher_like(self, foreach=self.foreach), foreach=self.foreach)
+    def fn_like(self, fn:Callable, *args, **kwargs): 
+        return TensorList(fn_like(self, fn, *args, **kwargs, foreach=self.foreach), foreach=self.foreach)
 
 
     @classmethod

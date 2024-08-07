@@ -131,13 +131,16 @@ def _foreach_group_param(param_groups):
     for group in param_groups:
         for param in group["params"]:
             if param.requires_grad: yield group, param
-            
+
 class GridSearch(Optimizer):
     def __init__(self, params, domain: tuple[float, float] | Sequence, step:Optional[float] = None):
-        """A more convenient form of grid search.
+        """You might want an optuna sampler version of this in
+        `torchzero.optim.integrations.optuna.GridSearch`.
+
+        A more convenient form of grid search.
         Tries every combination of parameters possible.
         After trying all combinations this will halve the step size and restart, while making sure not to try same combination twice.
-        As a result, you don't have to worry about setting `step` and appropriate number of iterations, 
+        As a result, you don't have to worry about setting `step` and appropriate number of iterations,
         since it will evenly explore the search space with more and more precision regardless of how many iterations you run it for.
 
         This evaluates closure once per step.
@@ -161,7 +164,7 @@ class GridSearch(Optimizer):
         super().__init__(params, defaults)
 
         self.lowest_loss = float("inf")
-        self.n_steps = 0
+        self.current_step = 0
 
         domains = []
         steps = []
@@ -183,7 +186,7 @@ class GridSearch(Optimizer):
 
         """
         # on first iteration we calculate the initial loss to compare new parameters to on next iterations
-        if self.n_steps == 0:
+        if self.current_step == 0:
             # save all parameters
             for p in _foreach_param(self.param_groups):
                 state = self.state[p]
@@ -229,11 +232,11 @@ class GridSearch(Optimizer):
         else:
             for p in _foreach_param(self.param_groups): p.copy_(self.state[p]['best'])
 
-        self.n_steps += 1
+        self.current_step += 1
         return loss
 
 class SequentialSearch(Optimizer):
-    def __init__(self, params, lr:float, domain: tuple[float, float]):
+    def __init__(self, params, step:float, domain: tuple[float, float] | Sequence, step_mul = 1.):
         """Sequential search. Sequentially finds the best value for each individual parameter,
         i.e. it tries all values of 1st parameter and picks the best, then tries all values of 2nd parameter and picks the best, and so on.
         After fitting all parameters the process is restarted from the best found position.
@@ -249,17 +252,15 @@ class SequentialSearch(Optimizer):
         Args:
             params: Parameters to optimize, usually `model.parameters()`.
 
-            lr (float): search step, e.g. at 0.1 it will increment each parameter by 0.1. Supports parameter groups and lr schedulers.
+            step (float): search step, e.g. at 0.1 it will increment each parameter by 0.1.
 
             domain (tuple[float, float]): search domain, e.g. `(-1, 1)` will search between -1 and 1. Supports parameter groups.
         """
-        defaults = dict(domain=domain, lr=lr)
+        defaults = dict(domain=domain, step=step, step_mul = step_mul)
         super().__init__(params, defaults)
 
         self.lowest_loss = float("inf")
-        self.n_steps = 0
-
-        self._group_param_flat = [(g, p, p.ravel()) for g, p in list(_foreach_param(self.param_groups))]
+        self.current_step = 0
 
     @torch.no_grad
     def step(self, closure:Callable): # type:ignore #pylint:disable=W0222
@@ -270,15 +271,16 @@ class SequentialSearch(Optimizer):
 
         """
         # on first iteration we calculate the initial loss to compare new parameters to on next iterations
-        if self.n_steps == 0:
+        if self.current_step == 0:
+            self._group_param_flat = [(g, p, p.ravel()) for g, p in _foreach_group_param(self.param_groups)]
             # save all parameters
-            for group, p in _foreach_param(self.param_groups):
+            for group, p, pflat in self._group_param_flat:
                 state = self.state[p]
                 state['best'] = p.clone()
 
                 # get domain minimum
-                group_min = group["domain"][0]
-                state['cur_value'] = group_min
+                low, high = group["domain"]
+                state['cur_value'] = low
                 # p.fill_(group_min)
 
             # evaluate the initial loss
@@ -291,21 +293,24 @@ class SequentialSearch(Optimizer):
         # if went through all parameters, restart
         if self.cur_param >= len(self._group_param_flat):
             self.cur_param = 0
+            for group in self.param_groups: group['step'] *= group['step_mul']
 
         group, p, pflat = self._group_param_flat[self.cur_param]
+
         # if current index is within current parameter
         if self.cur_index < len(pflat):
             state = self.state[p]
+            low, high = group["domain"]
 
             # if current value is within the domain
             value = state['cur_value']
-            if value <= group['domain'][1]:
+            if value <= high:
                 pflat[self.cur_index] = value
-                state['cur_value'] += group["lr"]
+                state['cur_value'] += group["step"]
             # else advance the index and reset current value
             else:
                 self.cur_index += 1
-                state['cur_value'] = group['domain'][0]
+                state['cur_value'] = low
         # else move to next parameter and reset the index
         else:
             self.cur_param += 1
@@ -319,5 +324,5 @@ class SequentialSearch(Optimizer):
         else:
             for p in _foreach_param(self.param_groups): p.copy_(self.state[p]['best'])
 
-        self.n_steps += 1
+        self.current_step += 1
         return loss

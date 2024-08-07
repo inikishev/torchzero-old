@@ -113,3 +113,21 @@ def randgaussian(shape, sigma=2, order=0, mode='reflect', sampler = torch.randn)
 def randgaussian_like(x:torch.Tensor, sigma=2, order=0, mode='reflect', sampler = torch.randn):
     """Generates a random tensor of shape `shape` and uses scipy.ndimage.gaussian_filter"""
     return randgaussian(x.shape, sigma=sigma, order=order, mode=mode, sampler=sampler).to(dtype=x.dtype, device=x.device).requires_grad_(x.requires_grad)
+
+
+def uniform(shape, low, high, device=None, requires_grad=None, dtype=None):
+    return torch.empty(shape, device=device, dtype=dtype, requires_grad=requires_grad).uniform_(low, high)
+
+def uniform_like(x:torch.Tensor, low, high):
+    return uniform(x.shape, low, high, device=x.device, requires_grad=x.requires_grad, dtype=x.dtype)
+
+class Uniform:
+    def __init__(self, low, high):
+        self.low = low
+        self.high = high
+
+    def __call__(self, shape, device = None, requires_grad = None, dtype = None):
+        return uniform(shape,self.low, self.high, device=device, requires_grad=requires_grad, dtype=dtype)
+
+    def like(self, x:torch.Tensor):
+        return uniform_like(x, self.low, self.high)

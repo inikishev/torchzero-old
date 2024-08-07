@@ -11,8 +11,8 @@ from ..._library.dropout import create_dropout
 from ..._library.pool import create_pool
 from ..._library.activation import create_act
 from ..._library.upsample import create_upsample
-from ..pad import pad_to_shape, pad_to_channels_like
-from ..crop import SpatialReduceCrop
+from ...functional.pad import pad_to_shape, pad_to_channels_like
+from ..crop import SpatialCrop
 from ..sequential import Sequential
 
 
@@ -95,7 +95,7 @@ class ConvBlock(Sequential):
         if padding == 'auto': padding = _get_samesize_padding_float(kernel_size)
         if isinstance(padding, float):
             if padding % 1 == 0: padding = int(padding); crop = None
-            elif padding % 1 == 0.5: padding = int(math.ceil(padding)); crop = SpatialReduceCrop(1)
+            elif padding % 1 == 0.5: padding = int(math.ceil(padding)); crop = SpatialCrop(1)
             else: raise ValueError(f'Invalid padding: {padding}')
         else: crop = None
 
