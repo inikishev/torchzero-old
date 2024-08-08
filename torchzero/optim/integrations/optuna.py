@@ -125,12 +125,12 @@ class GridSearch(optuna.samplers.BaseSampler):
 
 
 class OptunaOptimizer(torch.optim.Optimizer):
-    def __init__(self, params, sampler: optuna.samplers.BaseSampler, domain = (-10, 10), domain_around=False, enable_grad = False, silence=True):
+    def __init__(self, params, sampler: optuna.samplers.BaseSampler, domain = (-10, 10), domain_around=False, enable_grad = False, silence=True, _pruner = None):
         if silence: silence_optuna()
         defaults = dict(domain = domain, domain_around=domain_around)
         self.sampler = sampler
         self.enable_grad = enable_grad
-        self.study = optuna.create_study(sampler = self.sampler)
+        self.study = optuna.create_study(sampler = self.sampler, pruner = _pruner)
         super().__init__(params, defaults)
 
     @torch.no_grad
