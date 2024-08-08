@@ -8,6 +8,7 @@ from .. import _foreach
 
 __all__ = [
     "SimulatedAnnealing",
+    "ThresholdAccepting",
 ]
 class SimulatedAnnealing(optim.Optimizer):
     def __init__(

@@ -15,6 +15,8 @@ class FDSA(optim.Optimizer):
         params,
         lr:Optional[float] = 1e-3,
         magn:float = 1e-3,
+        min_diff = 1e-8,
+        max_diff = 1e-2,
         set_grad = False,
         opt = None,
     ):
@@ -38,7 +40,9 @@ class FDSA(optim.Optimizer):
         if set_grad is False and opt is not None: raise ValueError("opt can only be used with set_grad=True")
         if lr is None and not set_grad: raise ValueError("lr must be specified if set_grad=False")
 
-        defaults = dict(lr=lr, magn=magn)
+        if lr is not None and lr <= 0: raise ValueError(f"Invalid lr value: {lr}")
+        if magn <= 0: raise ValueError(f"Invalid magn value: {magn}")
+        defaults = dict(lr=lr, magn=magn, min_diff=min_diff, max_diff=max_diff)
         super().__init__(params, defaults)
 
         self.set_grad = set_grad
@@ -66,7 +70,11 @@ class FDSA(optim.Optimizer):
                     # restore original value
                     vec[idx] += group['magn']
                     # calculate gradient
-                    grad[idx] = (loss_pos - loss_neg) / (2 * group['magn'])
+                    dloss = loss_pos - loss_neg
+
+                    if abs(dloss) < group['min_diff']: dloss = group['min_diff'] if dloss > 0 else -group['min_diff']
+                    elif abs(dloss) > group['max_diff']: dloss = group['max_diff'] if dloss > 0 else -group['max_diff']
+                    grad[idx] = dloss / (2 * group['magn'])
 
                 # set grad attr
                 if self.set_grad: p.grad.add_(grad.view_as(p)) # type:ignore

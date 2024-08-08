@@ -1,10 +1,15 @@
-from typing import Any
+from contextlib import nullcontext
+from collections.abc import Callable
+from typing import Any, Optional
 import torch
 import numpy as np
 import optuna
 
 from ..zeroth_order.grid_search import _gridsearch_param_combinations
+from ..utils import get_group_params
 
+def silence_optuna():
+    optuna.logging.set_verbosity(optuna.logging.WARNING)
 class GridSearch(optuna.samplers.BaseSampler):
     """Sampler using a more convenient form of grid search.
 
@@ -116,3 +121,40 @@ class GridSearch(optuna.samplers.BaseSampler):
     def sample_independent(self, study, trial, param_name, param_distribution):
         independent_sampler = optuna.samplers.RandomSampler()
         return independent_sampler.sample_independent(study, trial, param_name, param_distribution)
+
+
+
+class OptunaOptimizer(torch.optim.Optimizer):
+    def __init__(self, params, sampler: optuna.samplers.BaseSampler, domain = (-10, 10), domain_around=False, enable_grad = False, silence=True):
+        if silence: silence_optuna()
+        defaults = dict(domain = domain, domain_around=domain_around)
+        self.sampler = sampler
+        self.enable_grad = enable_grad
+        self.study = optuna.create_study(sampler = self.sampler)
+        super().__init__(params, defaults)
+
+    @torch.no_grad
+    def step(self, closure:Optional[Callable] = None, loss: Optional[float | torch.Tensor] = None): # pylint:disable=W0222 # type:ignore
+        with torch.enable_grad() if self.enable_grad else nullcontext():
+            trial = self.study.ask()
+
+        for gi, group in enumerate(self.param_groups):
+            domain = group['domain']
+            domain_around = group['domain_around']
+            for pi, p in enumerate(group['params']):
+                if not p.requires_grad: continue
+                pflat = p.ravel()
+                for vi, value in enumerate(pflat):
+                    if domain_around: value_domain = [value + domain[0], value + domain[1]]
+                    else: value_domain = domain
+                    with torch.enable_grad() if self.enable_grad else nullcontext(): 
+                        value = trial.suggest_float(f'p{gi}_{pi}_{vi}', *value_domain)
+                    pflat[vi] = value
+
+        if loss is None:
+            if closure is None: raise ValueError("either loss or closure must be provided")
+            loss = closure()
+
+        if isinstance(loss, torch.Tensor): loss = float(loss.detach().cpu())
+
+        self.study.tell(trial, loss)

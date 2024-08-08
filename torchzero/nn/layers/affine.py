@@ -3,7 +3,7 @@ import torch
 from torch import nn
 
 class Affine(nn.Module):
-    def __init__(self, scalew=1, scaleh=1, transX=0., transY=0., transZ = 0., ndim = 2, mode='bilinear', padding_mode='zeros',align_corners=True):
+    def __init__(self, scalew=1., scaleh=1., transX=0., transY=0., transZ = 0., ndim = 2, mode='bilinear', padding_mode='zeros',align_corners=True):
         super().__init__()
         self.mode = mode
         self.padding_mode = padding_mode

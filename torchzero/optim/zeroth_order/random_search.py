@@ -16,7 +16,7 @@ class RandomSearch(optim.Optimizer):
     def __init__(
         self,
         params,
-        sampler = Uniform(-1, 1),
+        sampler:Callable = Uniform(-1, 1),
         stochastic = False,
         steps_per_sample = 1,
         foreach=True,
@@ -67,7 +67,7 @@ class RandomAnnealing(optim.Optimizer):
         steps_per_sample = 1,
         foreach=True,
     ):
-        defaults = dict(lr=lr, sampler=sampler, n_steps = n_steps)
+        defaults = dict(lr=lr, init_lr = lr, sampler=sampler, n_steps = n_steps)
         super().__init__(params, defaults)
         self.foreach = foreach
         self.stochastic=stochastic
@@ -99,7 +99,7 @@ class RandomAnnealing(optim.Optimizer):
                     params.set_(prev_params)
 
         for group in self.param_groups:
-            if group['n_steps'] is not None: group['lr'] -= group['lr']/group['n_steps']
+            if group['n_steps'] is not None: group['lr'] -= group['init_lr']/group['n_steps']
 
         self.current_step += 1
         return self.lowest_loss
