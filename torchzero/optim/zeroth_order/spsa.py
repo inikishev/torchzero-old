@@ -64,7 +64,6 @@ class SPSA(optim.Optimizer):
 
     @torch.no_grad
     def step(self, closure:Callable): # pylint:disable=W0222 # type:ignore
-
         grads_per_group_per_step:list[list[_foreach.TensorList]] = []
 
         for step in range(self.avg_steps):
@@ -74,8 +73,7 @@ class SPSA(optim.Optimizer):
                 params = get_group_params_tensorlist(group, with_grad=False, foreach=self.foreach)
                 group_petrubation = params.fn_like(group['sampler'])
                 petrubations_per_group.append(group_petrubation)
-                if step == 1: params.add_(group_petrubation, alpha = group['magn'])
-                else: params.add_(group_petrubation, alpha = group['magn'] * 2)
+                params.add_(group_petrubation, alpha = group['magn'])
 
             # evaluate positive loss
             loss_pos = closure()
@@ -91,6 +89,9 @@ class SPSA(optim.Optimizer):
             # apply SPSA formula and add results
             this_step_grads_per_group = []
             for group, petrubation in zip(self.param_groups, petrubations_per_group):
+                # undo petrubation
+                params = get_group_params_tensorlist(group, with_grad=False, foreach=self.foreach)
+                params.add_(petrubation, alpha = group['magn'])
 
                 variant = group['variant']
                 max_diff = group['max_diff']
@@ -116,24 +117,22 @@ class SPSA(optim.Optimizer):
 
                 else: raise ValueError(f"Invalid variant {group['variant']}")
 
+
+
             grads_per_group_per_step.append(this_step_grads_per_group)
 
         if self.avg_steps == 1: averaged_grads_per_group = grads_per_group_per_step[0]
         else: averaged_grads_per_group = [_foreach.sequencemean(i, foreach=self.foreach) for i in zip(*grads_per_group_per_step)]
 
         # apply SPSA update
-        for group, spsa_grad, last_petr in zip(self.param_groups, averaged_grads_per_group, petrubations_per_group): # type:ignore
+        for group, spsa_grad in zip(self.param_groups, averaged_grads_per_group): # type:ignore
             if self.set_grad:
                 params, grads = get_group_params_and_grads_tensorlist(group, with_grad=False, foreach=self.foreach)
-                # undo the step
-                params.add_(last_petr, alpha=group['magn'])
                 # accumulate gradients
                 grads.add_(spsa_grad)
             else:
                 # get only params
                 params = get_group_params_tensorlist(group, with_grad=False, foreach=self.foreach)
-                # undo the step
-                params.add_(last_petr, alpha=group['magn'])
                 # apply the update
                 params.sub_(spsa_grad, alpha=group['lr'])
 

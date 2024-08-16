@@ -74,7 +74,7 @@ class ParamNumeric(torch.nn.Module):
         self.unscaler = UNSCALERS[scale]
         """Callable that applies to an actual scaled value and makes it unscaled."""
 
-        self.unscaled_min = (self.unscaler(self.scaled_min) * self.mul) if self.scaled_min is not None else None
+        self.unscaled_min = self.unscaler(self.scaled_min) * self.mul if self.scaled_min is not None else None
         """Actual min of `self.value`. E.g. if unscaled value is 3 and scale is log10, this will be 1000 since log10(1000) = 3"""
         self.unscaled_max = self.unscaler(self.scaled_max) * self.mul if self.scaled_max is not None else None
         """Scaled max of `self.value`. E.g. if unscaled value is 3 and scale is log10, this will be 1000 since log10(1000) = 3"""

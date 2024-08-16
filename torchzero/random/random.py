@@ -2,6 +2,21 @@ import random
 import torch
 from scipy import signal, ndimage
 
+__all__ =[
+    "randfill",
+    "randfill_like",
+    "randrect",
+    "randrect_like",
+    "rademacher",
+    "rademacher_like",
+    "randmask",
+    "randmask_like",
+    "similar_like",
+    "uniform",
+    "uniform_like",
+    "Uniform",
+]
+
 def randfill(shape, sampler = random.normalvariate, device=None, requires_grad = False, dtype=None):
     """Return tensor filled with one value sampled from some distribution."""
     return torch.zeros(shape, device=device, requires_grad=requires_grad, dtype=dtype).fill_(sampler())
