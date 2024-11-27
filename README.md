@@ -1,3 +1,7 @@
+### THIS IS OUTDATED
+### THE NEW VERSION
+### https://github.com/inikishev/torchzero
+
 # torchzero
 Zeroth order pytorch optimizers and gradient approximators (SPSA, RDSA, FDSA, etc) with efficient `foreach` implementations; as well as few first order optimizers. Better docs later.
 
